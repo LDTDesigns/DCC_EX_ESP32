@@ -136,11 +136,12 @@ void loop()
 
   // Responsibility 1: Handle DCC background processes
   //                   (loco reminders and power checks)
+  #if !nanoLite
   DCC::loop();
 
   // Responsibility 2: handle any incoming commands on USB connection
-  SerialManager::loop();
-
+ SerialManager::loop();
+#endif
   // Responsibility 3: Optionally handle any incoming WiFi traffic
 #ifndef ARDUINO_ARCH_ESP32
 #if WIFI_ON

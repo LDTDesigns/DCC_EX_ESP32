@@ -140,7 +140,7 @@ The DCC-EX Team is pleased to release CommandStation-EX-v4.0.0 as a Production R
 - Automatic sensor offset detect
 - Improved startup msgs from Motor Drivers (accuracy and auto sense factors)
 - Drop post-write verify - No need to double check CV writes. Writes are now even faster.
-- Allow current sense pin set to UNUSED_PIN - No need to ground an unused analog current pin. Produce startup warning and callback -2 for prog track cmds.
+- Allow current sense pin set to UNUSED_PIN - No need to ground an unused analog current pin. Produce startup warning and callback -2 for prog track cmds.<>
 
 **Summary of the key new features added to CommandStation-EX V3.0.5**
 

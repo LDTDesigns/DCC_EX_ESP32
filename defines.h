@@ -53,7 +53,9 @@
   #undef I2C_EXTENDED_ADDRESS
 #elif defined(ARDUINO_AVR_NANO)
   #define ARDUINO_TYPE "NANO"
+  #if !nanoLite
   #undef HAS_ENOUGH_MEMORY
+  #endif
   #define NO_EXTENDED_CHARACTERS
   #undef I2C_EXTENDED_ADDRESS
 #elif defined(ARDUINO_AVR_MEGA)
@@ -168,7 +170,7 @@
 // WIFI_ON: All prereqs for running with WIFI are met
 // Note: WIFI_CHANNEL may not exist in early config.h files so is added here if needed.
 
-#if ENABLE_WIFI
+#if ENABLE_WIFI && !nanoLite
   #if defined(HAS_ENOUGH_MEMORY)
     #define WIFI_ON true
     #ifndef WIFI_CHANNEL

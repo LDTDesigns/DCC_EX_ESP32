@@ -1,7 +1,7 @@
 #include "defines.h"
 #include "IODevice.h"
 
-#ifndef IO_NO_HAL
+#ifndef IO_NO_HAL || nanoLite
 
 #include "IO_VL53L0X.h"
 #include "IO_HCSR04.h"
@@ -25,7 +25,7 @@
 //#include "IO_ExampleSerial.h"
 
 //#include "IO_EXFastclock.h"
-//#include "IO_EXTurntable.h"
+#include "IO_EXTurntable.h"
 
 #if __has_include("IO_ExternalEEPROM.h")
 #include "IO_ExternalEEPROM.h"

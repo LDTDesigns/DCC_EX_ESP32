@@ -78,3 +78,26 @@ DONE     // This just ends the startup thread, leaving 2 others running.
    AT(33) STOP
    DELAY(20000)  // wait 20 seconds 
    FOLLOW(2)   // follow sequence 2... ie repeat the process
+
+
+AUTOMATION(500, "Districts A MAIN _ B PROG Default")// Reset Default back to DCC Main & PROG
+ SET_TRACK(A,MAIN) PRINT("Default Districts Tracks MAIN A & PROG B")
+ SET_TRACK(B,PROG)
+ DONE
+AUTOMATION(501, "District A MAIN")   // Alternate DCC Main track A
+ SET_TRACK(A,MAIN) PRINT("District A MAIN")
+ DONE
+AUTOMATION(502, "District A PROG")   // Alternate DCC PROG track A
+ SET_TRACK(A,PROG) PRINT("District A PROG")
+ DONE
+AUTOMATION(503, "District A DC")     // Alternate DC track A with loco ID 1
+ SETLOCO(1)
+ SET_TRACK(A,DC) PRINT("District A DC")
+ DONE
+AUTOMATION(504, "District A DCX")    // Alternate DCX track A Changed to Opposite Polarity
+ SETLOCO(1)
+ SET_TRACK(A,DCX) PRINT("District A DCX Opposite Polarity") // Track A Opposite Polarity DC
+ DONE
+AUTOMATION(505, "District A NONE")    // A Track disabled
+ SET_TRACK(A, NONE) PRINT ("District A disabled")
+ DONE

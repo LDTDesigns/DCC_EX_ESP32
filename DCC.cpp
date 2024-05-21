@@ -23,6 +23,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+
 #include "DIAG.h"
 #include "DCC.h"
 #include "DCCWaveform.h"
@@ -588,6 +590,7 @@ void DCC::forgetAllLocos() {  // removes all speed reminders
 
 byte DCC::loopStatus=0;
 
+#if !nanoLite
 void DCC::loop()  {
   TrackManager::loop(); // power overload checks
   issueReminders();
@@ -648,7 +651,7 @@ bool DCC::issueReminder(int reg) {
       return loopStatus==0;
     }
 
-
+#endif
 
 
 ///// Private helper functions below here /////////////////////

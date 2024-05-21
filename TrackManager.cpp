@@ -382,8 +382,10 @@ void TrackManager::streamTrackState(Print* stream, byte t) {
 
 byte TrackManager::nextCycleTrack=MAX_TRACKS;
 
+#if !nanoLite
 void TrackManager::loop() {
     DCCWaveform::loop();
+  
 #ifndef DISABLE_PROG
     DCCACK::loop();
 #endif
@@ -395,7 +397,7 @@ void TrackManager::loop() {
     bool useProgLimit=dontLimitProg? false: track[nextCycleTrack]->getMode()==TRACK_MODE_PROG;
     motorDriver->checkPowerOverload(useProgLimit, nextCycleTrack);   
 }
-
+#endif
 MotorDriver * TrackManager::getProgDriver() {
     FOR_EACH_TRACK(t)
       if (track[t]->getMode()==TRACK_MODE_PROG) return track[t];

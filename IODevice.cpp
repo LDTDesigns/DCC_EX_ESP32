@@ -43,7 +43,7 @@ extern __attribute__((weak)) void exrailHalSetup();
 
 // Static method to initialise the IODevice subsystem.  
 
-#if !defined(IO_NO_HAL)
+#if !defined(IO_NO_HAL) || nanoLite
 
 // Create any standard device instances that may be required, such as the Arduino pins 
 // and PCA9685.
