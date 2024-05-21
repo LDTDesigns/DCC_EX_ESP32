@@ -6,10 +6,10 @@ Release/*
 .gcc-flags.json
 .pio/
 .vscode/
-config.h
+//config.h
 mySetup.cpp
-myHal.cpp
+//myHal.cpp
 myFilter.cpp
-my*.h
+//my*.h
 !my*.example.h
 compile_commands.json
