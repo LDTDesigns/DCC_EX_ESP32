@@ -31,6 +31,10 @@
 AUTOSTART
 MOVETT(600, 114, Turn)
 START(1)
+START(33)
+START(34)
+START(35)
+START(36)
 DONE
 
 // For Conductor level users who wish to just use EX-Turntable, you don't need to understand this
@@ -103,35 +107,13 @@ ALIAS(TTRoute27)
 ALIAS(TTRoute28)
 ALIAS(TTRoute29)
 ALIAS(TTRoute30)
-//**************************************************************************************
-//Solenoid Coil turnout
-//**************************************************************************************
-// Define a pulse time of 50ms to activate the coil
-#define PULSE 50
 
-// Define a macro called DUALCOILTURNOUT which creates various objects and event handlers for turnouts
-// This macro:
-// Defines a pin turnout
-// Defines an alias
-// Sets the direction pin and sends the pulse for the CLOSE command
-// Resets the direction pin and sends the pulse for the THROW command
-#define DUALCOILTURNOUT(t, p1, p2, desc, ali) \
-PIN_TURNOUT(t, 0, desc) \
-ALIAS(ali, t) \
-DONE \
-ONCLOSE(t) \
-RESET(p2)\
-SET(p1) \
-DELAY(PULSE)RESET(p1) \
-DONE \
-ONTHROW(t) \
-RESET(p1) \
-SET(p2)DELAY(PULSE)RESET(p2) \
-DONE
+//*****************************************************************************
+//add 2 buttons
+//**********************************************
 
 
-//use this to define each turnout
-DUALCOILTURNOUT(105, 168, 176, "Yard entrance", YD_E)  // Define the "Yard entrance" turnout with turnout ID 105 using MCP23017 pins 168/176, and create alias YD_E
+
 
 
 
@@ -177,75 +159,116 @@ AUTOMATION(509, "District B DCX (Loco Id=2)")    // Alternate DCX track B Change
  SET_TRACK(B, NONE) PRINT ("District B disabled")
  DONE
 
+
+ALIAS(BUTTON1,52)
+ALIAS(BUTTON2,53)
+
+ALIAS (SENSOR_1,54)
+SIGNAL(22,26,27)
+
 //add sensor to expansion module 0x23 at pin 200
-ALIAS(MAIN_SENSOR,206)
-ALIAS(SIDE_SENSOR,207)
+//ALIAS(MAIN_SENSOR,206)
+//ALIAS(SIDE_SENSOR,207)
 
  //add signal
- SIGNALH(200,201,202) 
+ //SIGNALH(200,201,202) 
  // define signal on pin 22(red)
- ALIAS(MAIN_SIGNAL,200)
- SIGNALH(203,204,205) 
+ //ALIAS(MAIN_SIGNAL,200)
+ //SIGNALH(203,204,205) 
  // define signal on pin 25(red)
- ALIAS(SIDE_SIGNAL,203)
+ //ALIAS(SIDE_SIGNAL,203)
 
 //add servos
 //SERVO(vpin, position, profile)
 //SERVO2(vpin, position, duration)
 //SERVO_SIGNAL(vpin, redpos, amberpos, greenpos)
-SERVO_SIGNAL(100, 105, 120, 140)
+//SERVO_SIGNAL(100, 105, 120, 140)
  //SERVO2(100,105,2000)
 
- AUTOMATION(1,"Traffic light 1")
+ //AUTOMATION(1,"Traffic light 1")
 
-START(21)
-START(22)
+//START(21)
+//START(22)
+START(33)
+START(34)
 DONE
 
 
 
 
- SEQUENCE(11)
- AMBER(MAIN_SIGNAL)
-DELAY(500)
-GREEN(MAIN_SIGNAL)
-GREEN(100)
-DELAY(5000)
-AMBER(MAIN_SIGNAL)
-AMBER(100)
-DELAY(1000)
-RED(MAIN_SIGNAL)
-RED(100)
-DELAY(1000)
-RETURN
+
+//  SEQUENCE(11)
+//  AMBER(MAIN_SIGNAL)
+// DELAY(500)
+// GREEN(MAIN_SIGNAL)
+// GREEN(100)
+// DELAY(5000)
+// AMBER(MAIN_SIGNAL)
+// AMBER(100)
+// DELAY(1000)
+// RED(MAIN_SIGNAL)
+// RED(100)
+// DELAY(1000)
+// RETURN
  
 
-SEQUENCE(12)
- AMBER(SIDE_SIGNAL)
-DELAY(500)
-GREEN(SIDE_SIGNAL)
-DELAY(5000)
-AMBER(SIDE_SIGNAL)
-DELAY(1000)
-RED(SIDE_SIGNAL)
-DELAY(1000)
-RETURN
+// SEQUENCE(12)
+//  AMBER(SIDE_SIGNAL)
+// DELAY(500)
+// GREEN(SIDE_SIGNAL)
+// DELAY(5000)
+// AMBER(SIDE_SIGNAL)
+// DELAY(1000)
+// RED(SIDE_SIGNAL)
+// DELAY(1000)
+// RETURN
 
 
 
-SEQUENCE(21)
-AT(MAIN_SENSOR)
-RESERVE(5)
-CALL(11)
-FREE(5)
-FOLLOW(21)
+// SEQUENCE(21)
+// AT(MAIN_SENSOR)
+// RESERVE(5)
+// CALL(11)
+// FREE(5)
+// FOLLOW(21)
+// DONE
 
-SEQUENCE(22)
-AT(SIDE_SENSOR)
-RESERVE(5)
-CALL(12)
-FREE(5)
-FOLLOW(22)
+// SEQUENCE(22)
+// AT(SIDE_SENSOR)
+// RESERVE(5)
+// CALL(12)
+// FREE(5)
+// FOLLOW(22)
+// DONE
+
+SEQUENCE(33)
+IFCLOSED(YD_E)
+AT(BUTTON1)
+THROW(YD_E)
+ENDIF
+FOLLOW(33)
 
 
+SEQUENCE(34)
+IFTHROWN(YD_E)
+AT(BUTTON2)
+CLOSE(YD_E)
+ENDIF
+FOLLOW(34)
+
+SEQUENCE(35)
+IF(SENSOR_1)
+IFGREEN(22)
+RED(22)
+ENDIF
+ELSE
+IFRED(22)
+GREEN(22)
+ENDIF
+ENDIF
+FOLLOW(35)
+#include "myMacro.h"
+#include"myTurnoutDefinitions.h"
+#include"myInputDevices.h"
+#include"myTurnOutToggleButtonAutomation.h"
 #include "MyLaunchAutomation.h"

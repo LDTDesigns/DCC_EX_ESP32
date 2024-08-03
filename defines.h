@@ -44,7 +44,7 @@
 #define USB_SERIAL Serial
 
 // Include extended addresses unless specifically excluded
-#define I2C_EXTENDED_ADDRESS
+#define I2C_EXTENDED_ADDRESS 
 
 #if defined(ARDUINO_AVR_UNO)
   #define ARDUINO_TYPE "UNO"

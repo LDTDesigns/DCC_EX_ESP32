@@ -135,12 +135,19 @@ void halSetup() {
   //=======================================================================
   // The following directive defines a PCF8574 8-port I2C GPIO Extender module.
   //=======================================================================
+  // 0x20 - 0x27 address range
   // The parameters are: 
   //   First Vpin=200
   //   Number of VPINs=8 (numbered 200-207)
   //   I2C address of module=0x23
-
-  PCF8574::create(200, 8, 0x23);
+//this on is predefined
+  PCF8574::create(200, 8, 0x20);
+  // add these
+  
+  PCF8574::create(208,8,0X21);
+  PCF8574::create(216,8,0x22);
+  PCF8574::create(224,8,0x22);
+  PCF8574::create(232,8,0x23);
 
 
   // Alternative form using INT pin (see above)
