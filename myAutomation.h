@@ -47,9 +47,11 @@ DONE
 #define EX_TURNTABLE(route_id, reserve_id, vpin, steps, activity, desc) \
   ROUTE(route_id, desc) \
     RESERVE(reserve_id) \
+    MOVETT(vpin,steps,LED_Fast) \
     MOVETT(vpin, steps, activity) \
     WAITFOR(vpin) \
     FREE(reserve_id) \
+    MOVETT(vpin,steps,LED_Off) \
     DONE
 
 /**************************************************************************************************

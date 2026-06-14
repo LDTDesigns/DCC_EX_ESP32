@@ -1,13 +1,8 @@
+
+
 //use this to define each turnout
 DUALCOILTURNOUT(105, 200, 201, "Yard entrance", YD_E)  // Define the "Yard entrance" turnout with turnout ID 105 using PCF8754 pin 200,201, and create alias YD_E
 
-ROUTE (301,"Main")
-CLOSE(105)
-DONE
-
-ROUTE (302,"Siding")
-THROW(105)
-DONE
 //===========================================================================
 //use this to define each turnout
 DUALCOILTURNOUT(106, 202, 203, "Yard exit", YD_EX)  // Define the "Yard exit" turnout with turnout ID 106 using PCF8754, and create alias YD_E

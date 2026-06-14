@@ -2,7 +2,7 @@
 //Solenoid Coil turnout
 //**************************************************************************************
 // Define a pulse time of 50ms to activate the coil
-#define PULSE 25
+#define PULSE 100
 
 // Define a macro called DUALCOILTURNOUT which creates various objects and event handlers for turnouts
 // This macro:
@@ -18,10 +18,12 @@ ONCLOSE(t) \
 RESET(p2)\
 SET(p1) \
 DELAY(PULSE)RESET(p1) \
+DELAY(1000)RESET(p1) \
 DONE \
 ONTHROW(t) \
 RESET(p1) \
 SET(p2)DELAY(PULSE)RESET(p2) \
+DELAY(PULSE)RESET(p2) \
 DONE
 
 #define TURNOUTBUTTON(throwpin,closepin,turnout,TbuttonAlias,CbuttonAlias)\
@@ -44,8 +46,8 @@ AT(CbuttonAlias) \
 IFTHROWN(turnout) \
 CLOSE(turnout) \
 ENDIF \
-FOLLOW(closepin)
-DONE \
+FOLLOW(closepin) \
+DONE 
 /* AFTER(buttonAlias)\
 THROW(turnout)\
 DONE*/

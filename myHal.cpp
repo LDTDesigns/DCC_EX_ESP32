@@ -141,7 +141,7 @@ void halSetup() {
   //   Number of VPINs=8 (numbered 200-207)
   //   I2C address of module=0x23
 //this on is predefined
-  PCF8574::create(200, 8, 0x20);
+  PCF8574::create(200, 8, 0x38);
   // add these
   
   PCF8574::create(208,8,0X21);
