@@ -47,7 +47,7 @@ private:
     uint8_t         _numPins;      
     HardwareSerial* _serialPort;   // Dynamic pointer to ANY hardware serial port
     uint8_t         _txEnablePin;  // Dynamic MAX485 control pin
-    
+     bool           _isAutoMode ; // Manual mode active
     bool            _awaitingResponse;
 
 
@@ -67,25 +67,48 @@ public:
         _serialPort = &serialPort; // Store the address of the chosen serial port
         _txEnablePin = txEnablePin;
         _awaitingResponse = false;
-        
+        _isAutoMode = false; // Manual mode active
         pinMode(_txEnablePin, OUTPUT);
         digitalWrite(_txEnablePin, LOW); 
     }
 
-    // Updated Factory Creator passing the port and pin along
+// Constructor 2: For Auto-Switching Hardware (Just pass Serial, no pin needed)
+   RS485_Node(VPIN vPinStart, uint8_t numPins, IODevice* subDevice, 
+               uint8_t nodeAddress, HardwareSerial& serialPort) 
+        : IODevice(vPinStart, numPins) 
+    {
+        _vPinStart = vPinStart;
+        _numPins = numPins;
+        _subDevice = subDevice;
+        _nodeAddress = nodeAddress;
+        _serialPort = &serialPort; // Store the address of the chosen serial port  
+        _awaitingResponse = false;
+        _isAutoMode = true; // auto mode active
+      
+    }
+
+
+    // Updated Factory Creator passing the port and no pin needed
     static void create(VPIN vPinStart, uint8_t numPins, IODevice* subDevice, 
                        uint8_t nodeAddress, HardwareSerial& serialPort, uint8_t txEnablePin) {
         new RS485_Node(vPinStart, numPins, subDevice, nodeAddress, serialPort, txEnablePin);
     }
+  static void create(VPIN vPinStart, uint8_t numPins, IODevice* subDevice, 
+                       uint8_t nodeAddress, HardwareSerial& serialPort) {
+        new RS485_Node(vPinStart, numPins, subDevice, nodeAddress, serialPort);
+    }
+
+
 
     // ========================================================================
     // OUTBOUND COMMAND PROCESSING (Uses dynamic port)
     // ========================================================================
     virtual void _write(VPIN vpin, int value) override {
         VPIN localPin = vpin - _vPinStart;
-
+        if(!_isAutoMode){
         digitalWrite(_txEnablePin, HIGH); // Lock the physical wire
         delayMicroseconds(5); 
+        }
 
         // Use the pointer to talk to your specific serial port smoothly
         _serialPort->print("<W ");
@@ -96,9 +119,10 @@ public:
         _serialPort->print(value);
         _serialPort->println(">");
         _serialPort->flush(); 
-        
+        if(!_isAutoMode){
         digitalWrite(_txEnablePin, LOW); // Unlock the wire
-        _subDevice->_write(vpin, value);           
+        _subDevice->_write(vpin, value);    
+        }       
     }
 
     virtual int _read(VPIN vpin) override {
@@ -111,15 +135,19 @@ public:
     virtual void _loop(unsigned long currentMicros) override {
         
         if (!_awaitingResponse) { 
+            if(!_isAutoMode){
             digitalWrite(_txEnablePin, HIGH); 
             delayMicroseconds(5);
+            }
 
             _serialPort->print("<P ");
             _serialPort->print(_nodeAddress);
             _serialPort->println(">");
+            
+            if(!_isAutoMode){
             _serialPort->flush();
-
-            digitalWrite(_txEnablePin, LOW); 
+             digitalWrite(_txEnablePin, LOW); 
+            }
             _awaitingResponse = true;
             
             delayUntil(currentMicros + 4000UL); // Wait 4ms for response

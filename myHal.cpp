@@ -146,10 +146,10 @@ void halSetup() {
   PCF8574::create(200, 8, 0x38);
   // add these
   
-  PCF8574::create(208,8,0X21);
-  PCF8574::create(216,8,0x22);
-  PCF8574::create(224,8,0x22);
-  PCF8574::create(232,8,0x39);
+  //PCF8574::create(208,8,0X21);
+  //PCF8574::create(216,8,0x22);
+ //PCF8574::create(224,8,0x22);
+ //PCF8574::create(232,8,0x39);
 
 
   // Alternative form using INT pin (see above)
