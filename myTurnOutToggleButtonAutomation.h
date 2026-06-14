@@ -2,17 +2,18 @@
 //define sequences to for button inputs
 //buttons defined in myInputDevices.h
 
-AUTOSTART
+/* AUTOSTART
+
 START(232)
 START(233)
-// START(38)
-// START(39)
+START(234)
+ START(235)
 // START(40)
 // START(41)
 // START(42)
 // START(43)
 
-DONE
+DONE */
 
 // SEQUENCE(36)
 // AFTER(BTN1)

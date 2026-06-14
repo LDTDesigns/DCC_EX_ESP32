@@ -17,11 +17,13 @@
 
 // Include devices you need.
 #include "IODevice.h"
+
 //#include "IO_HALDisplay.h"  // Auxiliary display devices (LCD/OLED)
 //#include "IO_HCSR04.h"    // Ultrasonic range sensor
 //#include "IO_VL53L0X.h"   // Laser time-of-flight sensor
 //#include "IO_DFPlayer.h"  // MP3 sound player
 //#include "IO_TouchKeypad.h  // Touch keypad with 16 keys
+#include "IO_RS485_Node.h" // custom rs485 node handler
 #if !nanoLite
 #include "IO_EXTurntable.h"   // Turntable-EX turntable controller
 #endif
@@ -147,13 +149,71 @@ void halSetup() {
   PCF8574::create(208,8,0X21);
   PCF8574::create(216,8,0x22);
   PCF8574::create(224,8,0x22);
-  PCF8574::create(232,8,0x23);
+  PCF8574::create(232,8,0x39);
 
 
   // Alternative form using INT pin (see above)
 
   //PCF8574::create(200, 8, 0x23, 40);
 
+// ========================================================================
+    // SECTION 1: NETWORK HARDWARE BUS INITIALIZATION
+    // ========================================================================
+    // Injecting our hardware dependencies at the top level makes it trivial to 
+    // reconfigure our physical wiring down the road without rewriting the driver.
+
+    // Select which of the Mega's 4 independent hardware serial ports to use.
+    // (Serial2 uses Pin 16 for TX and Pin 17 for RX. This completely leaves 
+    // Serial1 free to handle Wi-Fi throttles and JMRI traffic safely!)
+    HardwareSerial& rs485Bus = Serial2; 
+
+    // Define the Digital Output Pin on the Mega that is physically wired to 
+    // the MAX485's RE/DE shorted jumper pins to control transmit/receive direction.
+    const uint8_t max485TogglePin = 2; 
+
+    // Spin up the physical UART hardware bus lines at 115,200 bits per second.
+    // This high speed ensures a standard text packet clears the line in < 1ms.
+    rs485Bus.begin(115200); 
+
+
+    // ========================================================================
+    // SECTION 2: REMOTE NODE PIN ALLOCATIONS (The Composite Factory)
+    // ========================================================================
+    // For each physical node on your layout, you run a 2-step allocation process:
+    //   Step A: Instantiate a generic virtual proxy tracker of the target chip.
+    //   Step B: Wrap that proxy into the RS485 wrapper, passing configuration rules.
+    //
+    // Syntax for create(): 
+    //   RS485_Node::create(Start_VPIN, Total_Pins, Chip_Proxy, Node_ID, Serial_Bus, Control_Pin);
+
+    // ------------------------------------------------------------------------
+    // REMOTE NODE 1: An 8-pin PCF8574 board managing local Turnouts/Sensors
+    // ------------------------------------------------------------------------
+    // Pass '0' as the I2C address parameter. The Master Mega doesn't have this 
+    // chip locally attached to its own I2C pins; the remote Nano handles the 
+    // physical I2C signals on the other side of the room.
+    IODevice* remoteChip1 = new VirtualRegister(0); 
+
+    // Registers VPINs 208 to 215. Maps them directly to layout Node Address 1.
+    RS485_Node::create(208, 8, remoteChip1, 1, rs485Bus, max485TogglePin);   
+
+
+    // ------------------------------------------------------------------------
+    // REMOTE NODE 2: Another 8-pin PCF8574 board located farther down the line
+    // ------------------------------------------------------------------------
+    IODevice* remoteChip2 = new VirtualRegister(0); 
+
+    // Registers VPINs 216 to 223. Maps them directly to layout Node Address 2.
+    RS485_Node::create(216, 8, remoteChip2, 2, rs485Bus, max485TogglePin);   
+
+
+    // ------------------------------------------------------------------------
+    // REMOTE NODE 3: Example demonstrating the power of the Composite pattern!
+    // If you add a massive 16-pin MCP23017 chip out on the layout later:
+    // ------------------------------------------------------------------------
+    // IODevice* remoteChip3 = new VirtualRegister(0);
+    // Registers VPINs 224 to 239 (16 pins total) mapped to Node Address 3.
+    // RS485_Node::create(224, 16, remoteChip3, 3, rs485Bus, max485TogglePin);   
 
   //=======================================================================
   // The following directive defines a PCF8575 16-port I2C GPIO Extender module.

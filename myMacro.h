@@ -30,10 +30,6 @@ DONE
 ALIAS(CbuttonAlias,closepin) \
 ALIAS(TbuttonAlias,throwpin) \
 DONE \
-AUTOSTART \
-START(throwpin) \
-START(closepin) \
-DONE \
 SEQUENCE(throwpin) \
 AT(TbuttonAlias) \
 IFCLOSED(turnout) \
@@ -47,7 +43,11 @@ IFTHROWN(turnout) \
 CLOSE(turnout) \
 ENDIF \
 FOLLOW(closepin) \
-DONE 
+DONE \
+AUTOSTART \
+START(throwpin) \
+START(closepin) \
+DONE \
 /* AFTER(buttonAlias)\
 THROW(turnout)\
 DONE*/
