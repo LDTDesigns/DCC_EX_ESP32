@@ -173,7 +173,7 @@ void halSetup() {
 
     // Spin up the physical UART hardware bus lines at 115,200 bits per second.
     // This high speed ensures a standard text packet clears the line in < 1ms.
-    rs485Bus.begin(115200); 
+    rs485Bus.begin(38400); 
 
 
     // ========================================================================
@@ -192,20 +192,20 @@ void halSetup() {
     // Pass '0' as the I2C address parameter. The Master Mega doesn't have this 
     // chip locally attached to its own I2C pins; the remote Nano handles the 
     // physical I2C signals on the other side of the room.
-    IODevice* remoteChip1 = new VirtualRegister(0); 
+  //  IODevice* remoteChip1 = new VirtualRegister(0); 
 
     // Registers VPINs 208 to 215. Maps them directly to layout Node Address 1.
-    RS485_Node::create(208, 8, remoteChip1, 1, rs485Bus, max485TogglePin);   
+  //  RS485_Node::create(208, 8, remoteChip1, 2, rs485Bus, max485TogglePin);   
 
 
     // ------------------------------------------------------------------------
     // REMOTE NODE 2: Another 8-pin PCF8574 board located farther down the line
     // ------------------------------------------------------------------------
-    IODevice* remoteChip2 = new VirtualRegister(0); 
+   
 
     // Registers VPINs 216 to 223. Maps them directly to layout Node Address 2.
-    RS485_Node::create(216, 8, remoteChip2, 2, rs485Bus, max485TogglePin);   
-
+   
+RS485_Node::create(new VirtualRegister(232, 8), 1, rs485Bus);
 
     // ------------------------------------------------------------------------
     // REMOTE NODE 3: Example demonstrating the power of the Composite pattern!

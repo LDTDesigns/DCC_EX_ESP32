@@ -15,35 +15,34 @@ VIRTUAL_TURNOUT(t,  desc) \
 ALIAS(ali, t) \
 DONE \
 ONCLOSE(t) \
-RESET(p2)\
-SET(p1) \
-DELAY(PULSE)RESET(p1) \
-DELAY(1000)RESET(p1) \
-DONE \
+    RESET(p2)\
+    SET(p1) \
+    DELAY(PULSE) \
+    RESET(p1) \
+    DONE \
 ONTHROW(t) \
-RESET(p1) \
-SET(p2)DELAY(PULSE)RESET(p2) \
-DELAY(PULSE)RESET(p2) \
-DONE
+    RESET(p1) \
+    SET(p2) \
+    DELAY(PULSE) \
+    RESET(p2) \
+    DONE
 
 #define TURNOUTBUTTON(throwpin,closepin,turnout,TbuttonAlias,CbuttonAlias)\
 ALIAS(CbuttonAlias,closepin) \
 ALIAS(TbuttonAlias,throwpin) \
 DONE \
 SEQUENCE(throwpin) \
-AT(TbuttonAlias) \
-IFCLOSED(turnout) \
-THROW(turnout) \
-ENDIF \
-FOLLOW(throwpin) \
-DONE \
+    AT(TbuttonAlias) \
+    IFCLOSED(turnout) \
+        THROW(turnout) \
+    ENDIF \
+    DONE \
 SEQUENCE(closepin) \
-AT(CbuttonAlias) \
-IFTHROWN(turnout) \
-CLOSE(turnout) \
-ENDIF \
-FOLLOW(closepin) \
-DONE \
+    AT(CbuttonAlias) \
+    IFTHROWN(turnout) \
+        CLOSE(turnout) \
+    ENDIF \
+    DONE \
 AUTOSTART \
 START(throwpin) \
 START(closepin) \
