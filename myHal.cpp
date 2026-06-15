@@ -166,7 +166,7 @@ void halSetup() {
     // (Serial2 uses Pin 16 for TX and Pin 17 for RX. This completely leaves 
     // Serial1 free to handle Wi-Fi throttles and JMRI traffic safely!)
     HardwareSerial& rs485Bus = Serial2; 
-
+#define RS485_TX_ENABLE_PIN   2
     // Define the Digital Output Pin on the Mega that is physically wired to 
     // the MAX485's RE/DE shorted jumper pins to control transmit/receive direction.
     const uint8_t max485TogglePin = 2; 
@@ -175,45 +175,17 @@ void halSetup() {
     // This high speed ensures a standard text packet clears the line in < 1ms.
     rs485Bus.begin(38400); 
 
+// 1. Fire up the layout's network bus at our rock-solid SoftwareSerial friendly speed
+    Serial2.begin(38400);
 
-    // ========================================================================
-    // SECTION 2: REMOTE NODE PIN ALLOCATIONS (The Composite Factory)
-    // ========================================================================
-    // For each physical node on your layout, you run a 2-step allocation process:
-    //   Step A: Instantiate a generic virtual proxy tracker of the target chip.
-    //   Step B: Wrap that proxy into the RS485 wrapper, passing configuration rules.
-    //
-    // Syntax for create(): 
-    //   RS485_Node::create(Start_VPIN, Total_Pins, Chip_Proxy, Node_ID, Serial_Bus, Control_Pin);
+ // 1. Declare the remote network hub (Node ID = 1)
+    RS485_Node* layoutNode1 = new RS485_Node(1, Serial2, RS485_TX_ENABLE_PIN);
 
-    // ------------------------------------------------------------------------
-    // REMOTE NODE 1: An 8-pin PCF8574 board managing local Turnouts/Sensors
-    // ------------------------------------------------------------------------
-    // Pass '0' as the I2C address parameter. The Master Mega doesn't have this 
-    // chip locally attached to its own I2C pins; the remote Nano handles the 
-    // physical I2C signals on the other side of the room.
-  //  IODevice* remoteChip1 = new VirtualRegister(0); 
+    // 2. Map components safely using our distinct method name
+    layoutNode1->registerComponent(new StandardIOExpander(56, 232)); 
+    layoutNode1->registerComponent(new StandardIOExpander(57, 240)); 
+    layoutNode1->registerComponent(new RemoteI2CDevice(60, 250, 1));
 
-    // Registers VPINs 208 to 215. Maps them directly to layout Node Address 1.
-  //  RS485_Node::create(208, 8, remoteChip1, 2, rs485Bus, max485TogglePin);   
-
-
-    // ------------------------------------------------------------------------
-    // REMOTE NODE 2: Another 8-pin PCF8574 board located farther down the line
-    // ------------------------------------------------------------------------
-   
-
-    // Registers VPINs 216 to 223. Maps them directly to layout Node Address 2.
-   
-RS485_Node::create(new VirtualRegister(232, 8), 1, rs485Bus);
-
-    // ------------------------------------------------------------------------
-    // REMOTE NODE 3: Example demonstrating the power of the Composite pattern!
-    // If you add a massive 16-pin MCP23017 chip out on the layout later:
-    // ------------------------------------------------------------------------
-    // IODevice* remoteChip3 = new VirtualRegister(0);
-    // Registers VPINs 224 to 239 (16 pins total) mapped to Node Address 3.
-    // RS485_Node::create(224, 16, remoteChip3, 3, rs485Bus, max485TogglePin);   
 
   //=======================================================================
   // The following directive defines a PCF8575 16-port I2C GPIO Extender module.
