@@ -13,10 +13,13 @@
 
 // The #if directive prevent compile errors for Uno and Nano by excluding the 
 //  HAL directives from the build.
-//#if !defined(IO_NO_HAL)
+
+
+#if !defined(IO_NO_HAL)
 
 // Include devices you need.
 #include "IODevice.h"
+
 
 //#include "IO_HALDisplay.h"  // Auxiliary display devices (LCD/OLED)
 //#include "IO_HCSR04.h"    // Ultrasonic range sensor
@@ -24,7 +27,7 @@
 //#include "IO_DFPlayer.h"  // MP3 sound player
 //#include "IO_TouchKeypad.h  // Touch keypad with 16 keys
 #include "IO_RS485_Node.h" // custom rs485 node handler
-#include "RemoteDevice.h"  // custom remote device handler
+//#include "RemoteDevice.h"  // custom remote device handler
 #if !nanoLite
 #include "IO_EXTurntable.h"   // Turntable-EX turntable controller
 #endif
@@ -178,7 +181,7 @@ void halSetup() {
 
 
  // 1. Declare the remote network hub (Node ID = 1)
-   RS485_Node* layoutNode1 = new RS485_Node(1, rs485Bus, max485TogglePin);
+   RS485_Node* node1 = new RS485_Node(1, rs485Bus, max485TogglePin);
 
     // 2. Map components safely using our distinct method name
  // layoutNode1->registerComponent(new StandardIOExpander(56, 201)); 
@@ -188,8 +191,8 @@ void halSetup() {
 //layoutNode1->addDevice(0x38, 201, 16);   // VPIN 201–216
 //layoutNode1->addDevice(0x39, 240, 16);   // VPIN 240–255
 //layoutNode1->addDevice(0x3c, 260, 16);    // VPIN 260–275
-new RemoteDevice(layoutNode1, 0x38, 201, 8,  "PCF8574");
-
+  node1->addDevice(0x38, 201, 8, "PCF8574");   // VPIN 201–20
+node1->addDevice(0x39, 240, 8,"PCF8574 no2");   // VPIN 240–255
  PCF8574::create(280, 8, 0x3F);
   //=======================================================================
   // The following directive defines a PCF8575 16-port I2C GPIO Extender module.
@@ -353,4 +356,4 @@ new RemoteDevice(layoutNode1, 0x38, 201, 8,  "PCF8574");
 
 }
 
-//#endif
+#endif

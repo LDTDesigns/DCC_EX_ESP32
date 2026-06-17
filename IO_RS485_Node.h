@@ -1,36 +1,42 @@
 #ifndef RS485_NODE_H
 #define RS485_NODE_H
 #pragma once
-
-#include "IODevice.h"
-#include "NetworkComponent.h"
-#ifndef DIAG_H_INCLUDED
-#define DIAG_H_INCLUDED
+#include <Arduino.h>
 #include "DIAG.h"
-#endif
+#include "I2CManager.h"
 
+typedef uint16_t VPIN;
 
-#define MAX_COMPONENTS_PER_NODE 8
+struct RS485_RemoteDef {
+    I2CAddress  i2c;
+    VPIN     start;
+    uint8_t  pins;
+    const char* type;
+};
 
-class RemoteDevice;
+#define MAX_RS485_DEVICES 8
 
-class RS485_Node : public IODevice {
+class RS485_Node {
 public:
-    // AUTO mode (no DE/RE pin, auto-direction module)
+    // AUTO mode (no DE pin)
     RS485_Node(uint8_t nodeAddress, HardwareSerial& serialPort);
+  
 
-    // MANUAL mode (DE/RE pin controlled by MCU)
+    // MANUAL mode (DE pin controlled by MCU)
     RS485_Node(uint8_t nodeAddress, HardwareSerial& serialPort, uint8_t txPin);
 
-    void registerComponent(RemoteDevice* comp);
+    void addDevice(I2CAddress i2c, VPIN start, uint8_t pins, const char* type);
 
     uint8_t getNodeAddress() const { return _nodeAddress; }
 
-    // IODevice interface
-    int  _read(VPIN vpin) override;
-    void _write(VPIN vpin, int value) override;
-    void _loop(unsigned long now) override;
-    void _display() override;
+    // Called by proxy IODevice
+    int  read(VPIN vpin);
+    void write(VPIN vpin, int value);
+
+    // Called from loop()
+    void poll(unsigned long now);
+
+  
 
 private:
     uint8_t         _nodeAddress;
@@ -38,8 +44,26 @@ private:
     uint8_t         _txPin;
     bool            _autoMode;
 
-    RemoteDevice* _registry[MAX_COMPONENTS_PER_NODE];
-    int           _count;
+    RS485_RemoteDef _dev[MAX_RS485_DEVICES];
+    uint8_t         _count;
+
+    // Helpers
+    void beginTx();
+    void endTx();
+    RS485_RemoteDef* find(VPIN vpin);
+
+    void sendWrite(RS485_RemoteDef* d, uint8_t pinIndex, int value);
+    int  requestRead(RS485_RemoteDef* d, uint8_t pinIndex);
+// Incoming packet parser state
+bool        _inPacket = false;
+char        _rxBuf[64];
+uint8_t     _rxPos = 0;
+
+// Internal helpers
+void handleIncoming();
+void processPacket(const char* p);
+
+   
 };
 
 
