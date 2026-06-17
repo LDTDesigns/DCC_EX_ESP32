@@ -154,7 +154,7 @@ void halSetup() {
 
   // Alternative form using INT pin (see above)
 
-  PCF8574::create(200, 8, 0x23, 40);
+ // PCF8574::create(200, 8, 0x23, 40);
 
 // ========================================================================
     // SECTION 1: NETWORK HARDWARE BUS INITIALIZATION
@@ -177,13 +177,15 @@ void halSetup() {
 
 
  // 1. Declare the remote network hub (Node ID = 1)
-    RS485_Node* layoutNode1 = new RS485_Node(1,rs485Bus);
+   RS485_Node* layoutNode1 = new RS485_Node(1, &rs485Bus, max485TogglePin);
 
     // 2. Map components safely using our distinct method name
-   layoutNode1->registerComponent(new StandardIOExpander(56, 201)); 
-   layoutNode1->registerComponent(new StandardIOExpander(57, 240)); 
-  layoutNode1->registerComponent(new RemoteI2CDevice(60, 250, 1));
-
+ //  layoutNode1->registerComponent(new StandardIOExpander(56, 201)); 
+  // layoutNode1->registerComponent(new StandardIOExpander(57, 240)); 
+ // layoutNode1->registerComponent(new RemoteI2CDevice(60, 250, 1));
+layoutNode1->addDevice(0x38, 201, 16);   // VPIN 201–216
+layoutNode1->addDevice(0x39, 240, 16);   // VPIN 240–255
+layoutNode1->addDevice(0x3c, 260, 16);    // VPIN 260–275
 
 
   //=======================================================================
