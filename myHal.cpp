@@ -143,7 +143,7 @@ void halSetup() {
   //   Number of VPINs=8 (numbered 200-207)
   //   I2C address of module=0x23
 //this on is predefined
-  PCF8574::create(200, 8, 0x38);
+ // PCF8574::create(200, 8, 0x38);
   // add these
   
   //PCF8574::create(208,8,0X21);
@@ -154,7 +154,7 @@ void halSetup() {
 
   // Alternative form using INT pin (see above)
 
-  //PCF8574::create(200, 8, 0x23, 40);
+  PCF8574::create(200, 8, 0x23, 40);
 
 // ========================================================================
     // SECTION 1: NETWORK HARDWARE BUS INITIALIZATION
@@ -165,7 +165,7 @@ void halSetup() {
     // Select which of the Mega's 4 independent hardware serial ports to use.
     // (Serial2 uses Pin 16 for TX and Pin 17 for RX. This completely leaves 
     // Serial1 free to handle Wi-Fi throttles and JMRI traffic safely!)
-    HardwareSerial& rs485Bus = Serial2; 
+    HardwareSerial& rs485Bus = Serial3; 
 #define RS485_TX_ENABLE_PIN   2
     // Define the Digital Output Pin on the Mega that is physically wired to 
     // the MAX485's RE/DE shorted jumper pins to control transmit/receive direction.
@@ -173,18 +173,17 @@ void halSetup() {
 
     // Spin up the physical UART hardware bus lines at 115,200 bits per second.
     // This high speed ensures a standard text packet clears the line in < 1ms.
-    rs485Bus.begin(38400); 
+    rs485Bus.begin(9600); 
 
-// 1. Fire up the layout's network bus at our rock-solid SoftwareSerial friendly speed
-    Serial2.begin(38400);
 
  // 1. Declare the remote network hub (Node ID = 1)
-    RS485_Node* layoutNode1 = new RS485_Node(1, Serial2, RS485_TX_ENABLE_PIN);
+    RS485_Node* layoutNode1 = new RS485_Node(1,rs485Bus);
 
     // 2. Map components safely using our distinct method name
-    layoutNode1->registerComponent(new StandardIOExpander(56, 232)); 
-    layoutNode1->registerComponent(new StandardIOExpander(57, 240)); 
-    layoutNode1->registerComponent(new RemoteI2CDevice(60, 250, 1));
+   layoutNode1->registerComponent(new StandardIOExpander(56, 201)); 
+   layoutNode1->registerComponent(new StandardIOExpander(57, 240)); 
+  layoutNode1->registerComponent(new RemoteI2CDevice(60, 250, 1));
+
 
 
   //=======================================================================
@@ -302,7 +301,7 @@ void halSetup() {
   //
   // Note that the I2C address is defined in the EX-Turntable code, and 0x60 is the default.
 #if !nanoLite
-  EXTurntable::create(600, 1, 0x60);
+ // EXTurntable::create(600, 1, 0x60);
 #endif
 
   //=======================================================================

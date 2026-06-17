@@ -46,6 +46,9 @@ public:
     virtual ~NetworkComponent() {}
 
     uint8_t getAddress() const { return _i2cAddress; }
+    VPIN getStartVpin() const { return _vPinStart; }
+    int getPinCount() const { return _numPins; }
+
     bool handlesVPin(VPIN vpin) { return (vpin >= _vPinStart && vpin < (_vPinStart + _numPins)); }
 
     virtual void packWrite(VPIN vpin, int state, HardwareSerial* serial, uint8_t node, uint8_t txPin, bool autoMode) = 0;
@@ -81,7 +84,9 @@ public:
     
     virtual void packPoll(HardwareSerial* serial, uint8_t node, uint8_t txPin, bool autoMode) override {
         if (!autoMode) { digitalWrite(txPin, HIGH); delayMicroseconds(5); }
-        serial->print("<P,"); serial->print(node); serial->print(","); serial->print(_i2cAddress); serial->println(">");
+        char buf[32];
+        int len = snprintf(buf, sizeof(buf), "<P,%d,%d>", node, _i2cAddress);
+        serial->write((uint8_t*)buf, len);
         if (!autoMode) { serial->flush(); digitalWrite(txPin, LOW); }
     }
     
@@ -90,7 +95,6 @@ public:
     }
 
     virtual bool verifyWriteSuccess(VPIN vpin, int expectedValue, uint8_t expectedActivity) override {
-        // Confirm our local cache bit state matches what we attempted to push down the wire
         return (_cache->_read(vpin) == expectedValue);
     }
 };
@@ -129,8 +133,6 @@ public:
     }
 
     virtual bool verifyWriteSuccess(VPIN vpin, int expectedValue, uint8_t expectedActivity) override {
-        // Peter Cole's code sets _stepperStatus = 1 (busy) immediately during a write.
-        // If our response parser captured that the device acknowledged it's busy, the write succeeded!
         return (_statusFeedbackByte == 1);
     }
 };
@@ -152,6 +154,9 @@ private:
     char _buf[32];
     int _bufIdx;
 
+    // Per‑node virtual VPIN map (I2C → VirtualRegister)
+    VirtualRegister* _virtualMap[128];
+
     // Outbox Transaction Tracker
     WriteTransaction _outbox;
 
@@ -159,25 +164,35 @@ public:
     RS485_Node(uint8_t nodeAddress, HardwareSerial& serialPort, uint8_t txPin = 255) : IODevice(0,0) {
         _nodeAddress = nodeAddress; _serial = &serialPort; _txPin = txPin;
         _autoMode = (txPin == 255); _count = 0; _pollIndex = 0; _waiting = false; _bufIdx = 0;
-        
+
+        for (int i = 0; i < 128; i++) _virtualMap[i] = nullptr;
+
         _outbox.type = WRITE_NONE;
         _outbox.awaitingConfirmation = false;
         _outbox.retryCount = 0;
-        
+
+        Serial.print("RS485_Node constructed at ");
+        Serial.println((uint32_t)this, HEX);
+
         addDevice(this);
     }
 
     void registerComponent(NetworkComponent* comp) {
-        if (_count < MAX_COMPONENTS_PER_NODE) _registry[_count++] = comp;
+        if (_count < MAX_COMPONENTS_PER_NODE) {
+            _registry[_count++] = comp;
+
+            uint8_t i2c = comp->getAddress();
+            if (_virtualMap[i2c] == nullptr) {
+                _virtualMap[i2c] = new VirtualRegister(comp->getStartVpin(), comp->getPinCount());
+            }
+        }
     }
 
-    // Intercept binary writes and flag verification engine
     virtual void _write(VPIN vpin, int state) override {
         for (int i = 0; i < _count; i++) {
             if (_registry[i]->handlesVPin(vpin)) {
                 _registry[i]->packWrite(vpin, state, _serial, _nodeAddress, _txPin, _autoMode);
-                
-                // Stage into outbox tracker for loop validation
+
                 _outbox.type = WRITE_BINARY;
                 _outbox.vpin = vpin;
                 _outbox.value = state;
@@ -189,13 +204,11 @@ public:
         }
     }
 
-    // Intercept analogue writes and flag verification engine
     virtual void _writeAnalogue(VPIN vpin, int value, uint8_t activity, uint16_t duration) override {
         for (int i = 0; i < _count; i++) {
             if (_registry[i]->handlesVPin(vpin)) {
                 _registry[i]->packWriteAnalogue(vpin, value, activity, _serial, _nodeAddress, _txPin, _autoMode);
-                
-                // Stage into outbox tracker for loop validation
+
                 _outbox.type = WRITE_ANALOGUE;
                 _outbox.vpin = vpin;
                 _outbox.value = value;
@@ -208,69 +221,130 @@ public:
         }
     }
 
-    virtual int _read(VPIN vpin) override { return 0; }
-
-    virtual void _loop(unsigned long currentMicros) override {
-        if (_count == 0) return;
-
-        // 1. If we aren't waiting for a polling packet response, issue the next one
-        if (!_waiting) {
-            _registry[_pollIndex]->packPoll(_serial, _nodeAddress, _txPin, _autoMode);
-            _waiting = true; _lastPoll = currentMicros; _bufIdx = 0;
-            return;
+    virtual int _read(VPIN vpin) override {
+        for (int i = 0; i < _count; i++) {
+            if (_registry[i]->handlesVPin(vpin)) {
+                uint8_t i2c = _registry[i]->getAddress();
+                VirtualRegister* vr = _virtualMap[i2c];
+                if (vr) return vr->_read(vpin);
+            }
         }
+        return 0;
+    }
 
-        // 2. Read coming string frames across the hardware serial line
-        while (_waiting && _serial->available() > 0) {
-            char c = (char)_serial->read();
-            if (c == '<') _bufIdx = 0;
-            if (_bufIdx < (int)(sizeof(_buf) - 1)) { _buf[_bufIdx++] = c; _buf[_bufIdx] = '\0'; }
-            
+    void _loop(unsigned long currentMicros) override {
+
+        while (_serial->available()) {
+            char c = _serial->read();
+
+            if (c == '<') {
+                _bufIdx = 0;
+                Serial.println("[MEGA] Start of frame '<'");
+            }
+
+            if (_bufIdx < (int)(sizeof(_buf) - 1)) {
+                _buf[_bufIdx++] = c;
+                _buf[_bufIdx] = '\0';
+            }
+
             if (c == '>') {
+                Serial.print("[MEGA] Frame complete: ");
+                Serial.println(_buf);
+
                 int rNode = 0, rI2C = 0, rData = 0;
-                if (sscanf(_buf, "<R,%d,%d,%d>", &rNode, &rI2C, &rData) == 3) {
+
+                int parsed = sscanf(_buf, "<R,%d,%d,%d", &rNode, &rI2C, &rData);
+
+                if (parsed == 3) {
+                    Serial.print("[MEGA] Parsed OK → Node=");
+                    Serial.print(rNode);
+                    Serial.print(" I2C=");
+                    Serial.print(rI2C);
+                    Serial.print(" Data=");
+                    Serial.println(rData);
+
                     if (rNode == _nodeAddress) {
+
                         for (int i = 0; i < _count; i++) {
-                            if (_registry[i]->getAddress() == rI2C) { 
-                                _registry[i]->decodeResponse(rData); 
-                                
-                                // POST-POLL CHECK: Did this component register our pending write transaction?
-                                if (_outbox.awaitingConfirmation && _outbox.i2cAddress == rI2C) {
-                                    if (_registry[i]->verifyWriteSuccess(_outbox.vpin, _outbox.value, _outbox.activity)) {
-                                        // Write confirmed! Clear outbox pipeline safely
-                                        _outbox.awaitingConfirmation = false;
-                                        _outbox.type = WRITE_NONE;
-                                    } else {
-                                        // Validation failed. Handle Re-transmit logic
-                                        if (_outbox.retryCount < MAX_WRITE_RETRIES) {
-                                            _outbox.retryCount++;
-                                            if (_outbox.type == WRITE_BINARY) {
-                                                _registry[i]->packWrite(_outbox.vpin, _outbox.value, _serial, _nodeAddress, _txPin, _autoMode);
-                                            } else if (_outbox.type == WRITE_ANALOGUE) {
-                                                _registry[i]->packWriteAnalogue(_outbox.vpin, _outbox.value, _outbox.activity, _serial, _nodeAddress, _txPin, _autoMode);
-                                            }
-                                        } else {
-                                            // Max retries exhausted, drop transaction to prevent loop blockages
-                                            _outbox.awaitingConfirmation = false;
-                                            _outbox.type = WRITE_NONE;
-                                        }
+                            if (_registry[i]->getAddress() == rI2C) {
+
+                                Serial.println("[MEGA] decodeResponse() called");
+                                _registry[i]->decodeResponse(rData);
+
+                                // Update EX‑RAIL VPINs
+                                VirtualRegister* vr = _virtualMap[rI2C];
+                                if (vr) {
+                                    uint16_t start = vr->getStartPin();
+                                    uint8_t count = vr->getPinCount();
+                                    for (uint8_t bit = 0; bit < count; bit++) {
+                                        uint8_t value = (rData >> bit) & 0x01;
+                                        vr->_write(start + bit, value);
                                     }
                                 }
-                                break; 
+
+                                // Write confirmation
+                                if (_outbox.awaitingConfirmation &&
+                                    _outbox.i2cAddress == rI2C) {
+
+                                    Serial.println("[MEGA] Write confirmation check");
+
+                                    if (_registry[i]->verifyWriteSuccess(
+                                            _outbox.vpin,
+                                            _outbox.value,
+                                            _outbox.activity)) {
+
+                                        Serial.println("[MEGA] Write confirmed");
+                                        _outbox.awaitingConfirmation = false;
+                                        _outbox.type = WRITE_NONE;
+
+                                    } else if (_outbox.retryCount < MAX_WRITE_RETRIES) {
+
+                                        Serial.println("[MEGA] Write failed → retrying");
+                                        _outbox.retryCount++;
+
+                                        if (_outbox.type == WRITE_BINARY)
+                                            _registry[i]->packWrite(_outbox.vpin, _outbox.value, _serial, _nodeAddress, _txPin, _autoMode);
+                                        else
+                                            _registry[i]->packWriteAnalogue(_outbox.vpin, _outbox.value, _outbox.activity, _serial, _nodeAddress, _txPin, _autoMode);
+
+                                    } else {
+                                        Serial.println("[MEGA] Max retries reached → dropping");
+                                        _outbox.awaitingConfirmation = false;
+                                        _outbox.type = WRITE_NONE;
+                                    }
+                                }
+                                break;
                             }
                         }
                     }
+                } else {
+                    Serial.print("[MEGA] PARSE FAIL (");
+                    Serial.print(parsed);
+                    Serial.println(" fields)");
                 }
-                _waiting = false; _pollIndex = (_pollIndex + 1) % _count;
+
+                Serial.println("[MEGA] Clearing _waiting and advancing poll index");
+                _waiting = false;
+                _pollIndex = (_pollIndex + 1) % _count;
             }
         }
 
-        // 3. Timeout fallback guard if a remote Nano completely fails to reply within 60ms
-        if (_waiting && (currentMicros - _lastPoll > 60000UL)) { 
-            _waiting = false; _pollIndex = (_pollIndex + 1) % _count; 
+        if (_waiting && (currentMicros - _lastPoll > 60000UL)) {
+            Serial.println("[MEGA] TIMEOUT → advancing poll index");
+            _waiting = false;
+            _pollIndex = (_pollIndex + 1) % _count;
         }
-        
-        delayUntil(currentMicros + 4000UL); // 4ms background loop throttling
+
+        if (!_waiting) {
+            Serial.print("[MEGA] Sending poll to index ");
+            Serial.println(_pollIndex);
+
+            _registry[_pollIndex]->packPoll(_serial, _nodeAddress, _txPin, _autoMode);
+
+            _waiting = true;
+            _lastPoll = currentMicros;
+            _bufIdx = 0;
+        }
     }
 };
 

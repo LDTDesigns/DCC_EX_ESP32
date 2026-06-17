@@ -90,8 +90,9 @@ The configuration file for DCC-EX Command Station
 // NOTE: Only supported on Arduino Mega
 // Set to false if you not even want it on the Arduino Mega
 //
-#define ENABLE_WIFI true
-
+#define ENABLE_WIFI false
+#define DISABLE_WIFI_AUTODETECT
+#define WIFI_SERIAL_PORT 1  // prevent clashes with rs485Bus on Serial3
 /////////////////////////////////////////////////////////////////////////////////////
 //
 // DEFINE WiFi Parameters (only in effect if WIFI is on)
