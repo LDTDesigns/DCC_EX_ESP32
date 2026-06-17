@@ -24,6 +24,7 @@
 //#include "IO_DFPlayer.h"  // MP3 sound player
 //#include "IO_TouchKeypad.h  // Touch keypad with 16 keys
 #include "IO_RS485_Node.h" // custom rs485 node handler
+#include "RemoteDevice.h"  // custom remote device handler
 #if !nanoLite
 #include "IO_EXTurntable.h"   // Turntable-EX turntable controller
 #endif
@@ -177,17 +178,19 @@ void halSetup() {
 
 
  // 1. Declare the remote network hub (Node ID = 1)
-   RS485_Node* layoutNode1 = new RS485_Node(1, &rs485Bus, max485TogglePin);
+   RS485_Node* layoutNode1 = new RS485_Node(1, rs485Bus, max485TogglePin);
 
     // 2. Map components safely using our distinct method name
- //  layoutNode1->registerComponent(new StandardIOExpander(56, 201)); 
-  // layoutNode1->registerComponent(new StandardIOExpander(57, 240)); 
- // layoutNode1->registerComponent(new RemoteI2CDevice(60, 250, 1));
-layoutNode1->addDevice(0x38, 201, 16);   // VPIN 201–216
-layoutNode1->addDevice(0x39, 240, 16);   // VPIN 240–255
-layoutNode1->addDevice(0x3c, 260, 16);    // VPIN 260–275
+ // layoutNode1->registerComponent(new StandardIOExpander(56, 201)); 
+  /// layoutNode1->registerComponent(new StandardIOExpander(57, 240)); 
+  //layoutNode1->registerComponent(new RemoteI2CDevice(60, 250, 1));
+ // layoutNode1->_display();  // show the node's configuration on the serial console
+//layoutNode1->addDevice(0x38, 201, 16);   // VPIN 201–216
+//layoutNode1->addDevice(0x39, 240, 16);   // VPIN 240–255
+//layoutNode1->addDevice(0x3c, 260, 16);    // VPIN 260–275
+new RemoteDevice(layoutNode1, 0x38, 201, 8,  "PCF8574");
 
-
+ PCF8574::create(280, 8, 0x3F);
   //=======================================================================
   // The following directive defines a PCF8575 16-port I2C GPIO Extender module.
   //=======================================================================

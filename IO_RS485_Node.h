@@ -1,47 +1,50 @@
 #ifndef RS485_NODE_H
 #define RS485_NODE_H
+#pragma once
 
-#include <stdint.h>
-#include <Arduino.h>
 #include "IODevice.h"
+#include "NetworkComponent.h"
+#ifndef DIAG_H_INCLUDED
+#define DIAG_H_INCLUDED
+#include "DIAG.h"
+#endif
+
+
+#define MAX_COMPONENTS_PER_NODE 8
 
 class RemoteDevice;
 
-class RS485_Node {
+class RS485_Node : public IODevice {
 public:
-    // Auto-direction RS485 interface (no DE/RE pin)
-    RS485_Node(uint8_t nodeAddress, HardwareSerial* port);
+    // AUTO mode (no DE/RE pin, auto-direction module)
+    RS485_Node(uint8_t nodeAddress, HardwareSerial& serialPort);
 
-    // Manual-direction RS485 interface (DE/RE pin)
-    RS485_Node(uint8_t nodeAddress, HardwareSerial* port, int deRePin);
+    // MANUAL mode (DE/RE pin controlled by MCU)
+    RS485_Node(uint8_t nodeAddress, HardwareSerial& serialPort, uint8_t txPin);
 
-    void addDevice(uint8_t i2cAddress, VPIN firstVpin, uint8_t pinCount);
+    void registerComponent(RemoteDevice* comp);
 
-    int  readRemote(uint8_t i2cAddress, VPIN vpin);
-    void writeRemote(uint8_t i2cAddress, VPIN vpin, int state);
-    void _display();
+    uint8_t getNodeAddress() const { return _nodeAddress; }
+
+    // IODevice interface
+    int  _read(VPIN vpin) override;
+    void _write(VPIN vpin, int value) override;
+    void _loop(unsigned long now) override;
+    void _display() override;
 
 private:
-    uint8_t _nodeAddress;
-    HardwareSerial* _port;
+    uint8_t         _nodeAddress;
+    HardwareSerial* _serial;
+    uint8_t         _txPin;
+    bool            _autoMode;
 
-    int _deRePin;          // -1 = auto-direction
-    bool _autoDirection;   // true = no DE/RE control required
-
-    struct DeviceInfo {
-        uint8_t i2cAddress;
-        VPIN firstVpin;
-        uint8_t pinCount;
-        RemoteDevice* dev;
-    };
-
-    DeviceInfo _devices[16];
-    uint8_t _deviceCount = 0;
-
-    void _setTxMode(bool enable);
+    RemoteDevice* _registry[MAX_COMPONENTS_PER_NODE];
+    int           _count;
 };
 
+
 #endif
+
 
 
 
