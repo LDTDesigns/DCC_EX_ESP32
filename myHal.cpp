@@ -193,6 +193,7 @@ void halSetup() {
 //layoutNode1->addDevice(0x3c, 260, 16);    // VPIN 260–275
   node1->addDevice(0x38, 201, 8, "PCF8574");   // VPIN 201–20
 node1->addDevice(0x39, 240, 8,"PCF8574 no2");   // VPIN 240–255
+node1->addDevice(0x3c, 250, 8,"PCF8574 no3"); 
  PCF8574::create(280, 8, 0x3F);
   //=======================================================================
   // The following directive defines a PCF8575 16-port I2C GPIO Extender module.

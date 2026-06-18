@@ -25,6 +25,11 @@ protected:
         DIAG(F("[RS485] Poller interval %dms"), _interval);
     }
 
+void _write(VPIN vpin, int value) override {
+        // Do nothing
+    }
+
+
 private:
     RS485_Node* _node;
     int _interval;
