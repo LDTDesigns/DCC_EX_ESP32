@@ -269,8 +269,8 @@ SIGNAL(22,26,27)
 // ENDIF
 // ENDIF
 // FOLLOW(35)
-//#include "myMacro.h"
-//#include"myTurnoutDefinitions.h"
-//#include"myInputDevices.h"
-//#include"myTurnOutToggleButtonAutomation.h"
+#include "myMacro.h"
+#include"myTurnoutDefinitions.h"
+#include"myInputDevices.h"
+#include"myTurnOutToggleButtonAutomation.h"
 //#include "MyLaunchAutomation.h"

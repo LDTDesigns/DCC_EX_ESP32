@@ -35,7 +35,7 @@ DUALCOILTURNOUT(116, 222, 223, "BranchLine10", BR_LN10)
 //====================
 //Pins 224-231 on 0x22 are configured as input in myInputDevices.h
 // TURNOUTBUTTON(throwpin,closepin,turnout,buttonAliasClose,buttonAliasThrow)
-TURNOUTBUTTON(232,233,YD_E,YardEntranceClose,YardEntranceThrow)
-TURNOUTBUTTON(234,235,YD_EX,YardExitClose,YardExitThrow)
-TURNOUTBUTTON(236,237,BR_LN1,Branch1Close,Branch1Throw)
-TURNOUTBUTTON(238,239,BR_LN2,Branch2Close,Branch2Throw)
+//TURNOUTBUTTON(232,233,YD_E,YardEntranceClose,YardEntranceThrow)
+//TURNOUTBUTTON(234,235,YD_EX,YardExitClose,YardExitThrow)
+//TURNOUTBUTTON(236,237,BR_LN1,Branch1Close,Branch1Throw)
+//TURNOUTBUTTON(238,239,BR_LN2,Branch2Close,Branch2Throw)

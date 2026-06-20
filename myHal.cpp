@@ -147,7 +147,7 @@ void halSetup() {
   //   Number of VPINs=8 (numbered 200-207)
   //   I2C address of module=0x23
 //this on is predefined
- // PCF8574::create(200, 8, 0x38);
+ PCF8574::create(200, 8, 0x38);
   // add these
   
   //PCF8574::create(208,8,0X21);
@@ -158,7 +158,7 @@ void halSetup() {
 
   // Alternative form using INT pin (see above)
 
- // PCF8574::create(200, 8, 0x23, 40);
+  PCF8574::create(209, 8, 0x20);
 
 // ========================================================================
     // SECTION 1: NETWORK HARDWARE BUS INITIALIZATION
@@ -191,10 +191,10 @@ void halSetup() {
 //layoutNode1->addDevice(0x38, 201, 16);   // VPIN 201–216
 //layoutNode1->addDevice(0x39, 240, 16);   // VPIN 240–255
 //layoutNode1->addDevice(0x3c, 260, 16);    // VPIN 260–275
-  node1->addDevice(0x38, 201, 8, "PCF8574");   // VPIN 201–20
-node1->addDevice(0x39, 240, 8,"PCF8574 no2");   // VPIN 240–255
-node1->addDevice(0x3c, 250, 8,"PCF8574 no3"); 
- PCF8574::create(280, 8, 0x3F);
+  node1->addDevice(0x38, 232, 8, "PCF8574");   // VPIN 201–20
+//node1->addDevice(0x39, 240, 8,"PCF8574 no2");   // VPIN 240–255
+//node1->addDevice(0x3c, 250, 8,"PCF8574 no3"); 
+ // PCF8574::create(200, 8, 0x3F);
   //=======================================================================
   // The following directive defines a PCF8575 16-port I2C GPIO Extender module.
   //=======================================================================

@@ -4,7 +4,8 @@
 #include <Arduino.h>
 #include "DIAG.h"
 #include "I2CManager.h"
-
+//#include "RS485_IODevice.h"
+class RS485_IODevice;   // ⭐ forward declaration
 typedef uint16_t VPIN;
 
 struct RS485_RemoteDef {
@@ -12,6 +13,8 @@ struct RS485_RemoteDef {
     VPIN     start;
     uint8_t  pins;
     const char* type;
+    uint16_t lastMask; // Store the last known state of the device  
+    RS485_IODevice* dev = nullptr; 
 };
 
 #define MAX_RS485_DEVICES 8
