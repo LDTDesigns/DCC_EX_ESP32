@@ -273,4 +273,4 @@ SIGNAL(22,26,27)
 #include"myTurnoutDefinitions.h"
 #include"myInputDevices.h"
 #include"myTurnOutToggleButtonAutomation.h"
-//#include "MyLaunchAutomation.h"
+#include "MyLaunchAutomation.h"

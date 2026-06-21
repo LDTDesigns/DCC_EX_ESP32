@@ -7,7 +7,7 @@ RS485_IODevice::RS485_IODevice(RS485_Node* owner, I2CAddress i2c, VPIN firstVpin
 : IODevice(firstVpin, nPins), _owner(owner), _i2c(i2c)
 {
     _states = (uint8_t*)calloc(1, (_nPins + 7) / 8);
-   // addDevice(this); //see if this prevents duplicate registration of the device in the IODevice registry
+   addDevice(this); //see if this prevents duplicate registration of the device in the IODevice registry
     _display();
 }
 

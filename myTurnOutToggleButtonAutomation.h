@@ -15,44 +15,44 @@
 
 // DONE */
 
- SEQUENCE(36)
- AFTER(BTN1)
-    CLOSE(105) 
- FOLLOW(36)
+//  SEQUENCE(36)
+//  AFTER(BTN1)
+//     CLOSE(105) 
+//  FOLLOW(36)
 
-   SEQUENCE(37)
-   AFTER(BTN2)
- THROW(105)  
- FOLLOW(37)
-
-
-    SEQUENCE(38)
-   AFTER(BTN3)
- THROW(106)  
- FOLLOW(38)
-
-    SEQUENCE(39)
-    AFTER(BTN4)
- CLOSE(106)  
- FOLLOW(39)
+//    SEQUENCE(37)
+//    AFTER(BTN2)
+//  THROW(105)  
+//  FOLLOW(37)
 
 
-    SEQUENCE(40)
-    AFTER(BTN5)
- THROW(107)  
- FOLLOW(40)
+//     SEQUENCE(38)
+//    AFTER(BTN3)
+//  THROW(106)  
+//  FOLLOW(38)
 
-    SEQUENCE(41)
-    AFTER(BTN6)
- CLOSE(107)  
- FOLLOW(41)
+//     SEQUENCE(39)
+//     AFTER(BTN4)
+//  CLOSE(106)  
+//  FOLLOW(39)
 
-   SEQUENCE(42)
-    AFTER(BTN7)
- THROW(108)  
- FOLLOW(42)
 
-    SEQUENCE(43)
-    AFTER(BTN8)
- CLOSE(108)  
- FOLLOW(43)
+//     SEQUENCE(40)
+//     AFTER(BTN5)
+//  THROW(107)  
+//  FOLLOW(40)
+
+//     SEQUENCE(41)
+//     AFTER(BTN6)
+//  CLOSE(107)  
+//  FOLLOW(41)
+
+//    SEQUENCE(42)
+//     AFTER(BTN7)
+//  THROW(108)  
+//  FOLLOW(42)
+
+//     SEQUENCE(43)
+//     AFTER(BTN8)
+//  CLOSE(108)  
+//  FOLLOW(43)

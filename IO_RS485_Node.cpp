@@ -26,7 +26,7 @@ RS485_Node::RS485_Node(uint8_t nodeAddress, HardwareSerial& serialPort)
   _count(0)
 {
     DIAG(F("[RS485] Node %u constructed in AUTO mode"), _nodeAddress);
-    new RS485_Poller(this, 100); // poll every 50ms //// Create proxy IODevice for this remote device based on the flag or useraddin method.
+   new RS485_Poller(this, 100); // poll every 50ms //// Create proxy IODevice for this remote device based on the flag or useraddin method.
 }
 
 // MANUAL mode
@@ -89,6 +89,12 @@ RS485_RemoteDef* RS485_Node::find(VPIN vpin) {
             return &_dev[i];
     }
     return nullptr;
+}
+void RS485_Node::begin() {
+   // discoverDevices();      // remote scan
+   // for each remote device:
+       // addDevice();         // creates RS485_IODevice
+   // startPoller();          // safe now
 }
 
 // ======================================================================

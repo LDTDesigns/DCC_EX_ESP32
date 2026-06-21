@@ -57,6 +57,8 @@ private:
 unsigned long _lastPollSent = 0;
 
     
+void begin();
+
 bool _writePending = false;
 I2CAddress _wpI2C;
 uint8_t _wpPin;
