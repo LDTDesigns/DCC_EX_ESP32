@@ -52,6 +52,8 @@ static const FSH * guessI2CDeviceType(uint8_t address) {
     return F("GPIO Expander or LCD Display");
   else if (address == 0x29)
     return F("Time-of-flight sensor");
+else if (address >= 0x38 && address <= 0x3F)
+    return F("Taylor(CoilDriver)");
   else if (address >= 0x3c && address <= 0x3d)
     return F("OLED Display");
   else if (address >= 0x48 && address <= 0x4f)

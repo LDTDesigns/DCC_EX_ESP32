@@ -7,7 +7,7 @@
 // ---------------------------------------------------------------------
 
 #ifndef RS485_DEBUG
-#define RS485_DEBUG 1
+#define RS485_DEBUG 0
 #endif
 
 unsigned long _nextPoll = 0;
@@ -26,7 +26,8 @@ RS485_Node::RS485_Node(uint8_t nodeAddress, HardwareSerial& serialPort)
   _count(0)
 {
     DIAG(F("[RS485] Node %u constructed in AUTO mode"), _nodeAddress);
-   new RS485_Poller(this, 100); // poll every 50ms //// Create proxy IODevice for this remote device based on the flag or useraddin method.
+   // dont create plloer here use the iodevice to poll in loop
+  new RS485_Poller(this, 100); // poll every 50ms //// Create proxy IODevice for this remote device based on the flag or useraddin method.
 }
 
 // MANUAL mode
@@ -63,7 +64,7 @@ _dev[_count].start    = start;
 _dev[_count].pins     = pins;
 _dev[_count].type     = type;
 _dev[_count].lastMask = 0xFFFF;   // correct initial value
- _dev[_count].dev = new RS485_IODevice(this, i2c, start, pins);
+ _dev[_count].dev= new RS485_IODevice(this, i2c, start, pins);
 
    // _dev[_count++] = { i2c, start, pins, type, 0xffff}; // Initialize lastMask 
    // new RS485_IODevice(this, i2c, start, pins); 
@@ -137,7 +138,7 @@ void RS485_Node::sendWrite(I2CAddress i2c, uint8_t pin, uint8_t value) {
     _serial->print(">");
     _serial->flush();
     endTx();
-#if RS485_DEBUG >= 2
+#if RS485_DEBUG >= 1
     DIAG(F("[RS485] Write → Node %u Dev %s Pin %u = %u"),
          _nodeAddress, i2c.toString(), pin, value);
          #endif
@@ -303,8 +304,9 @@ void RS485_Node::processPacket(const char* p) {
     }
 
     // Expect: R node i2c mask
-    int node, i2c, mask;
-    if (sscanf(p, "R %d %d %d", &node, &i2c, &mask) != 3){
+    int node, i2c;
+    unsigned int rawMask;
+    if (sscanf(p, "R %d %d %x", &node, &i2c, &rawMask) != 3){
         #if RS485_DEBUG >= 1
       DIAG(F("[RS485] UNKNOWN PACKET: <%s>"), p);
       #endif
@@ -348,44 +350,40 @@ void RS485_Node::processPacket(const char* p) {
     }
     if (!d) return;
 
+// Clean mask to device width
+uint16_t cleanMask = rawMask & 0xFF;   // or 0xFFFF for 16‑bit devices
 // Only update if mask changed
-if (mask == d->lastMask) {
+if (cleanMask == d->lastMask) {
     return;   // no change → skip VPIN updates
 }
-d->lastMask = mask;
-
-
-    // Apply mask → VPINs
-    for (uint8_t i = 0; i < d->pins; i++) {
-        int val = (mask & (1 << i)) ? 1 : 0;
-      //  IODevice::write(d->start + i, val); - this might be wrong call
-      d->dev->updateInput(d->start + i, val);
-
-    }
-
-    #if RS485_DEBUG >= 1
-    DIAG(F("[RS485] Update Dev %d → mask=0x%02X"), i2c, mask);
+d->lastMask = cleanMask;
+ #if RS485_DEBUG >= 1
+    DIAG(F("[RS485_NODE::processPacket] Mask updated- Dev %d → cleanMask=0x%02X"), i2c, cleanMask);
     #endif
 
-for (int i = 0; i < d->pins; i++) {
-    VPIN v = d->start + i;
-#if RS485_DEBUG >= 2
-    if (!IODevice::exists(v)) {
-        DIAG(F("RS485 INPUT ERROR: VPIN %u not registered!"), v);
-        continue;     
-    }
-    #endif
-#if RS485_DEBUG >= 2
-    if (IODevice::exists(v)) {
-        DIAG(F("RS485 INPUT : VPIN %u is registered!"), v);
-        continue;     
-    }
-    #endif
-}
+ //   // Apply mask → VPINs
+ //   for (uint8_t i = 0; i < d->pins; i++) {
+  //      int val = (mask & (1 << i)) ? 1 : 0;
+ //     //  IODevice::write(d->start + i, val); - this might be wrong call
+  //    d->dev->updateInput(d->start + i, val);
 
+ //   }
 
 
 }
+
+uint16_t RS485_Node::getCurrentMask(RS485_IODevice* device) {
+
+    for (int i = 0; i < _count; i++) {
+        if (_dev[i].dev == device) {
+            return _dev[i].lastMask;
+        }
+    }
+
+    return 0;   // or 0xFFFF if you prefer "all high"
+}
+
+
 
 // void RS485_Node::processPacket(const char* p) {
 //    // _waitingForReply = false;

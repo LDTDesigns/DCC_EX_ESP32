@@ -30,11 +30,11 @@
 
 AUTOSTART
 MOVETT(600, 114, Turn)
-START(1)
-START(33)
-START(34)
-START(35)
-START(36)
+// START(1)
+// START(33)
+// START(34)
+// START(35)
+// START(36)
 DONE
 
 // For Conductor level users who wish to just use EX-Turntable, you don't need to understand this

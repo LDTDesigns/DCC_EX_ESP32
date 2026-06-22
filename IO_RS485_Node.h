@@ -15,6 +15,7 @@ struct RS485_RemoteDef {
     const char* type;
     uint16_t lastMask; // Store the last known state of the device  
     RS485_IODevice* dev = nullptr; 
+
 };
 
 #define MAX_RS485_DEVICES 8
@@ -31,7 +32,7 @@ public:
     void addDevice(I2CAddress i2c, VPIN start, uint8_t pins, const char* type);
 
     uint8_t getNodeAddress() const { return _nodeAddress; }
-
+ uint16_t  getCurrentMask(RS485_IODevice* dev);
     // Called by proxy IODevice
     int  read(VPIN vpin);
     void write(VPIN vpin, int value);
@@ -49,6 +50,9 @@ private:
 
     RS485_RemoteDef _dev[MAX_RS485_DEVICES];
     uint8_t         _count;
+    unsigned long _lastPollMicros = 0;
+const unsigned long _pollIntervalMicros = 100000;   // 100ms
+//RS485_IODevice* io; 
 
     // Helpers
     void beginTx();

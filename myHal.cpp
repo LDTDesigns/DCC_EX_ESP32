@@ -28,6 +28,7 @@
 //#include "IO_TouchKeypad.h  // Touch keypad with 16 keys
 #include "IO_RS485_Node.h" // custom rs485 node handler
 //#include "RemoteDevice.h"  // custom remote device handler
+#include"IO_CoilDriver.h"
 #if !nanoLite
 #include "IO_EXTurntable.h"   // Turntable-EX turntable controller
 #endif
@@ -147,7 +148,9 @@ void halSetup() {
   //   Number of VPINs=8 (numbered 200-207)
   //   I2C address of module=0x23
 //this on is predefined
- PCF8574::create(200, 8, 0x38);
+
+
+ //PCF8574::create(200, 8, 0x38);
   // add these
   
   //PCF8574::create(208,8,0X21);
@@ -158,8 +161,9 @@ void halSetup() {
 
   // Alternative form using INT pin (see above)
 
-  PCF8574::create(209, 8, 0x20);
+  //PCF8574::create(209, 8, 0x20);
 
+ CoilDriver::create(0x38,200,8,3000,75);
 // ========================================================================
     // SECTION 1: NETWORK HARDWARE BUS INITIALIZATION
     // ========================================================================

@@ -238,6 +238,20 @@ int IODevice::configureAnalogIn(VPIN vpin) {
 //  then only the first one found will be used.
 void IODevice::write(VPIN vpin, int value) {
   IODevice *dev = findDevice(vpin);
+
+#ifdef DIAG_IO
+    if (dev) {
+        // Print device identity using pointer + vtable address
+      //  DIAG(F("[IOBase::write] → dev=%p vtable=%p firstVpin=%u nPins=%u"),
+       //      dev,
+         //    *((void**)dev),   // vtable pointer
+        //     (unsigned)dev->_firstVpin,
+         //    (unsigned)dev->_nPins);
+    } else {
+        DIAG(F("[IOBase::write] → NO DEVICE FOUND for vpin=%u"), (unsigned)vpin);
+    }
+#endif
+
   if (dev) {
     dev->_write(vpin, value);
     return;
