@@ -26,9 +26,12 @@
 //#include "IO_VL53L0X.h"   // Laser time-of-flight sensor
 //#include "IO_DFPlayer.h"  // MP3 sound player
 //#include "IO_TouchKeypad.h  // Touch keypad with 16 keys
+#include "RS485_BusController.h"
 #include "IO_RS485_Node.h" // custom rs485 node handler
+#include"RS485_IODevice.h"
 //#include "RemoteDevice.h"  // custom remote device handler
-#include"IO_CoilDriver.h"
+#include"IO_LocalCoilDriver.h"
+#include"IO_RemoteCoilDriver.h"
 #if !nanoLite
 #include "IO_EXTurntable.h"   // Turntable-EX turntable controller
 #endif
@@ -43,127 +46,13 @@
 
 void halSetup() {
 
-  //=======================================================================
-  // The following directives define auxiliary display devices.
-  // These can be defined in addition to the system display (display
-  // number 0) that is defined in config.h.
-  // A write to a line which is beyond the length of the screen will overwrite
-  // the bottom line, unless the line number is 255 in which case the 
-  // screen contents will scroll up before the text is written to the
-  // bottom line.
-  //=======================================================================
-  // 
-  // Create a 128x32 OLED display device as display number 1 
-  // (line 0 is written by EX-RAIL 'SCREEN(1, 0, "text")').
-
-  //HALDisplay<OLED>::create(1, 0x3d, 128, 32);
-
-  // Create a 20x4 LCD display device as display number 2 
-  // (line 0 is written by EX-RAIL 'SCREEN(2, 0, "text")').
-
-  // HALDisplay<LiquidCrystal>::create(2, 0x27, 20, 4);
 
 
-  //=======================================================================
-  // User Add-ins
-  //=======================================================================
-  // User add-ins can be created when you want to do something that 
-  // can't be done in EX-RAIL but does not merit a HAL driver.  The 
-  // user add-in is a C++ function that is executed periodically by the
-  // HAL subsystem.
+  PCF8574::create(240, 8, 0x39);
 
-  // Example: The function will be executed once per second and will display, 
-  // on screen #3, the first eight entries (assuming an 8-line display)
-  // from the loco speed table.
-  
-  // Put the following block of code in myHal.cpp OUTSIDE of the 
-  //   halSetup() function:
-  //
-  // void updateLocoScreen() {
-  //   for (int i=0; i<8; i++) {
-  //     if (DCC::speedTable[i].loco > 0) {
-  //       int speed = DCC::speedTable[i].speedCode;
-  //       char direction = (speed & 0x80) ? 'R' : 'F';
-  //       speed = speed & 0x7f;
-  //       if (speed > 0) speed = speed - 1;
-  //       SCREEN(3, i, F("Loco:%4d %3d %c"), DCC::speedTable[i].loco,
-  //         speed, direction);
-  //     }
-  //   }
-  // }
-  //
-  // Put the following line INSIDE the halSetup() function:
-  //
-  // UserAddin::create(updateLocoScreen, 1000);
-  //
+ //LocalCoilDriver::create(0x38,200,8,3000,75);
 
-
-  //=======================================================================
-  // The following directive defines a PCA9685 PWM Servo driver module.
-  //=======================================================================
-  // The parameters are: 
-  //   First Vpin=100
-  //   Number of VPINs=16 (numbered 100-115)
-  //   I2C address of module=0x40
-
-  //PCA9685::create(400, 16, 0x40);
-
-
-  //=======================================================================
-  // The following directive defines an MCP23017 16-port I2C GPIO Extender module.
-  //=======================================================================
-  // The parameters are: 
-  //   First Vpin=196
-  //   Number of VPINs=16 (numbered 196-211)
-  //   I2C address of module=0x22
-
-  //MCP23017::create(196, 16, 0x22);
-
-
-  // Alternative form, which allows the INT pin of the module to request a scan
-  // by pulling Arduino pin 40 to ground.  Means that the I2C isn't being polled
-  // all the time, only when a change takes place. Multiple modules' INT pins
-  // may be connected to the same Arduino pin.
-
-  //MCP23017::create(196, 16, 0x22, 40);
-
-
-  //=======================================================================
-  // The following directive defines an MCP23008 8-port I2C GPIO Extender module.
-  //=======================================================================
-  // The parameters are: 
-  //   First Vpin=300
-  //   Number of VPINs=8 (numbered 300-307)
-  //   I2C address of module=0x22
-
-  //MCP23008::create(300, 8, 0x22);
-
-
-  //=======================================================================
-  // The following directive defines a PCF8574 8-port I2C GPIO Extender module.
-  //=======================================================================
-  // 0x20 - 0x27 address range
-  // The parameters are: 
-  //   First Vpin=200
-  //   Number of VPINs=8 (numbered 200-207)
-  //   I2C address of module=0x23
-//this on is predefined
-
-
- //PCF8574::create(200, 8, 0x38);
-  // add these
-  
-  //PCF8574::create(208,8,0X21);
-  //PCF8574::create(216,8,0x22);
- //PCF8574::create(224,8,0x22);
- //PCF8574::create(232,8,0x39);
-
-
-  // Alternative form using INT pin (see above)
-
-  //PCF8574::create(209, 8, 0x20);
-
- CoilDriver::create(0x38,200,8,3000,75);
+ 
 // ========================================================================
     // SECTION 1: NETWORK HARDWARE BUS INITIALIZATION
     // ========================================================================
@@ -181,184 +70,17 @@ void halSetup() {
 
     // Spin up the physical UART hardware bus lines at 115,200 bits per second.
     // This high speed ensures a standard text packet clears the line in < 1ms.
-    rs485Bus.begin(9600); 
+  //  rs485Bus.begin(19200); 
 
+RS485BusController* Bus1 =RS485BusController::create(rs485Bus,max485TogglePin,50);
 
  // 1. Declare the remote network hub (Node ID = 1)
-   RS485_Node* node1 = new RS485_Node(1, rs485Bus, max485TogglePin);
-
-    // 2. Map components safely using our distinct method name
- // layoutNode1->registerComponent(new StandardIOExpander(56, 201)); 
-  /// layoutNode1->registerComponent(new StandardIOExpander(57, 240)); 
-  //layoutNode1->registerComponent(new RemoteI2CDevice(60, 250, 1));
- // layoutNode1->_display();  // show the node's configuration on the serial console
-//layoutNode1->addDevice(0x38, 201, 16);   // VPIN 201–216
-//layoutNode1->addDevice(0x39, 240, 16);   // VPIN 240–255
-//layoutNode1->addDevice(0x3c, 260, 16);    // VPIN 260–275
-  node1->addDevice(0x38, 232, 8, "PCF8574");   // VPIN 201–20
-//node1->addDevice(0x39, 240, 8,"PCF8574 no2");   // VPIN 240–255
-//node1->addDevice(0x3c, 250, 8,"PCF8574 no3"); 
- // PCF8574::create(200, 8, 0x3F);
-  //=======================================================================
-  // The following directive defines a PCF8575 16-port I2C GPIO Extender module.
-  //=======================================================================
-  // The parameters are: 
-  //   First Vpin=200
-  //   Number of VPINs=16 (numbered 200-215)
-  //   I2C address of module=0x23
-
-  //PCF8575::create(200, 16, 0x23);
-
-
-  // Alternative form using INT pin (see above)
-
-  //PCF8575::create(200, 16, 0x23, 40);
-
-  //=======================================================================
-  // The following directive defines an HCSR04 ultrasonic ranging module.
-  //=======================================================================
-  // The parameters are: 
-  //   Vpin=2000 (only one VPIN per directive)
-  //   Number of VPINs=1
-  //   Arduino pin connected to TRIG=30
-  //   Arduino pin connected to ECHO=31
-  //   Minimum trigger range=20cm (VPIN goes to 1 when <20cm)
-  //   Maximum trigger range=25cm (VPIN goes to 0 when >25cm)
-  // Note: Multiple devices can be configured by using a different ECHO pin
-  // for each one.  The TRIG pin can be shared between multiple devices.
-  // Be aware that the 'ping' of one device may be received by another
-  // device and position them accordingly!
-
-  //HCSR04::create(2000, 30, 31, 20, 25);
-  //HCSR04::create(2001, 30, 32, 20, 25);
-
-
-  //=======================================================================
-  // The following directive defines a single VL53L0X Time-of-Flight range sensor.
-  //=======================================================================
-  // The parameters are:
-  //   VPIN=5000
-  //   Number of VPINs=1
-  //   I2C address=0x29 (default for this chip)
-  //   Minimum trigger range=200mm (VPIN goes to 1 when <20cm)
-  //   Maximum trigger range=250mm (VPIN goes to 0 when >25cm)
-
-  //VL53L0X::create(5000, 1, 0x29, 200, 250); 
-
-  // For multiple VL53L0X modules, add another parameter which is a VPIN connected to the
-  // module's XSHUT pin.  This allows the modules to be configured, at start,
-  // with distinct I2C addresses.  In this case, the address 0x29 is only used during
-  // initialisation to configure each device in turn with the desired unique I2C address.
-  // The examples below have the modules' XSHUT pins connected to the first two pins of 
-  // the first MCP23017 module (164 and 165), but Arduino pins may be used instead.
-  // The first module here is given I2C address 0x30 and the second is 0x31.
-
-  //VL53L0X::create(5000, 1, 0x30, 200, 250, 164); 
-  //VL53L0X::create(5001, 1, 0x31, 200, 250, 165); 
-
-
-  //=======================================================================
-  // Play mp3 files from a Micro-SD card, using a DFPlayer MP3 Module.
-  //=======================================================================
-  // Parameters: 
-  //   10000 = first VPIN allocated.
-  //   10 = number of VPINs allocated.
-  //   Serial1 = name of serial port (usually Serial1 or Serial2).
-  // With these parameters, up to 10 files may be played on pins 10000-10009.
-  // Play is started from EX-RAIL with SET(10000) for first mp3 file, SET(10001)
-  // for second file, etc.  Play may also be initiated by writing an analogue
-  // value to the first pin, e.g. ANOUT(10000,23,0,0) will play the 23rd mp3 file.
-  // ANOUT(10000,23,30,0) will do the same thing, as well as setting the volume to 
-  // 30 (maximum value).
-  // Play is stopped by RESET(10000) (or any other allocated VPIN).
-  // Volume may also be set by writing an analogue value to the second pin for the player, 
-  // e.g. ANOUT(10001,30,0,0) sets volume to maximum (30).
-  // The EX-RAIL script may check for completion of play by calling WAITFOR(pin), which will only proceed to the
-  // following line when the player is no longer busy.
-  // E.g.
-  //    SEQUENCE(1)
-  //      AT(164)           // Wait for sensor attached to pin 164 to activate
-  //      SET(10003)        // Play fourth MP3 file
-  //      LCD(4, "Playing") // Display message on LCD/OLED
-  //      WAITFOR(10003)    // Wait for playing to finish
-  //      LCD(4, "")       // Clear LCD/OLED line 
-  //      FOLLOW(1)         // Go back to start
-
-  // DFPlayer::create(10000, 10, Serial1);
-
-
-  //=======================================================================
-  // 16-pad capacitative touch key pad based on TP229 IC.
-  //=======================================================================
-  // Parameters below:
-  //   11000 = first VPIN allocated
-  //   16 = number of VPINs allocated
-  //   25 = local GPIO pin number for clock signal
-  //   24 = local GPIO pin number for data signal
-  //
-  // Pressing the key pads numbered 1-16 cause each of the nominated digital VPINs 
-  // (11000-11015 in this case) to be activated.
-
-  // TouchKeypad::create(11000, 16, 25, 24);
-
-
-  //=======================================================================
-  // The following directive defines an EX-Turntable turntable instance.
-  //=======================================================================
-   //EXTurntable::create(VPIN, Number of VPINs, I2C Address)
-  //
-  // The parameters are:
-  //   VPIN=600
-  //   Number of VPINs=1 (Note there is no reason to change this)
-  //   I2C address=0x60
-  //
-  // Note that the I2C address is defined in the EX-Turntable code, and 0x60 is the default.
-#if !nanoLite
- // EXTurntable::create(600, 1, 0x60);
-#endif
-
-  //=======================================================================
-  // The following directive defines an EX-IOExpander instance.
-  //=======================================================================
-  // EXIOExpander::create(VPIN, Number of VPINs, I2C Address)
-  //
-  // The parameters are:
-  //   VPIN=an available Vpin
-  //   Number of VPINs=pin count (must match device in use as per documentation)
-  //   I2C address=an available I2C address (default 0x65)
-  //
-  // Note that the I2C address is defined in the EX-IOExpander code, and 0x65 is the default.
-  // The example is for an Arduino Nano.
-
-  //EXIOExpander::create(800, 18, 0x65);
-
-
-  //=======================================================================
-  // The following directive defines a rotary encoder instance.
-  //=======================================================================
-  // The parameters are: 
-  //   firstVpin = First available Vpin to allocate
-  //   numPins= Number of Vpins to allocate, can be either 1 or 2
-  //   i2cAddress = Available I2C address (default 0x70)
-
-  //RotaryEncoder::create(firstVpin, numPins, i2cAddress);
-  //RotaryEncoder::create(700, 1, 0x70);
-  //RotaryEncoder::create(701, 2, 0x71);
-
- //=======================================================================
-  // The following directive defines an EX-FastClock instance.
-  //=======================================================================
-  // EXFastCLock::create(I2C Address)
-  //
-  // The parameters are:
-  //   
-  //   I2C address=0x55 (decimal 85)
-  //
-  // Note that the I2C address is defined in the EX-FastClock code, and 0x55 is the default.
-
- 
-  //   EXFastClock::create(0x55);
-
+ RS485_Node* node1  =RS485_Node::create(1,Bus1);
+ RS485_Node* node2 =RS485_Node::create(2,Bus1);
+//RemoteCoilDriver::create(node1,0x38,200,8,3000,75);
+RS485_IODevice::create(node1,0x20,232,8);
+RemoteCoilDriver::create(node1,0x38,200,8,3000,75);
+Bus1->init();
 }
 
 #endif

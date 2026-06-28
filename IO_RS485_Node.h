@@ -4,8 +4,11 @@
 #include <Arduino.h>
 #include "DIAG.h"
 #include "I2CManager.h"
-//#include "RS485_IODevice.h"
+#include"IODevice.h"
+#include "RS485_BusController.h"
 class RS485_IODevice;   // ⭐ forward declaration
+class RS485BusController;
+
 typedef uint16_t VPIN;
 
 struct RS485_RemoteDef {
@@ -14,25 +17,22 @@ struct RS485_RemoteDef {
     uint8_t  pins;
     const char* type;
     uint16_t lastMask; // Store the last known state of the device  
-    RS485_IODevice* dev = nullptr; 
+    IODevice* dev = nullptr; 
+    bool online =false;
 
 };
 
 #define MAX_RS485_DEVICES 8
+//#define MAX_NODES 16
 
 class RS485_Node {
 public:
-    // AUTO mode (no DE pin)
-    RS485_Node(uint8_t nodeAddress, HardwareSerial& serialPort);
-  
+ //static RS485_Node* registry[MAX_NODES]; 
 
-    // MANUAL mode (DE pin controlled by MCU)
-    RS485_Node(uint8_t nodeAddress, HardwareSerial& serialPort, uint8_t txPin);
-
-    void addDevice(I2CAddress i2c, VPIN start, uint8_t pins, const char* type);
+ static RS485_Node* create(uint8_t nodeAddress,RS485BusController* bus);
 
     uint8_t getNodeAddress() const { return _nodeAddress; }
- uint16_t  getCurrentMask(RS485_IODevice* dev);
+ uint16_t  getCurrentMask(IODevice* dev);
     // Called by proxy IODevice
     int  read(VPIN vpin);
     void write(VPIN vpin, int value);
@@ -41,51 +41,26 @@ public:
     void poll(unsigned long now);
 
   void sendWrite(I2CAddress i2c, uint8_t pin, uint8_t value);
+  void addDevice(IODevice* dev, I2CAddress i2c, VPIN start, uint8_t pins, const char* type);
+  IODevice* nextDevice();
 
-private:
-    uint8_t         _nodeAddress;
-    HardwareSerial* _serial;
-    uint8_t         _txPin;
-    bool            _autoMode;
+  private:
+RS485_Node(uint8_t nodeAddress,RS485BusController* bus);
+ friend class RS485BusController; 
+uint8_t _nodeAddress;
+RS485BusController* _busController;
+RS485_RemoteDef _dev[MAX_RS485_DEVICES];
+uint8_t         _count;
+//static uint8_t nodeCount;
+uint8_t _nextDeviceIndex = 0;
 
-    RS485_RemoteDef _dev[MAX_RS485_DEVICES];
-    uint8_t         _count;
-    unsigned long _lastPollMicros = 0;
-const unsigned long _pollIntervalMicros = 100000;   // 100ms
-//RS485_IODevice* io; 
+// Helpers
+RS485_RemoteDef* find(VPIN vpin);
 
-    // Helpers
-    void beginTx();
-    void endTx();
-    RS485_RemoteDef* find(VPIN vpin);
-unsigned long _lastPollSent = 0;
-
+//void scanI2C();
     
-void begin();
+void _begin();
 
-bool _writePending = false;
-I2CAddress _wpI2C;
-uint8_t _wpPin;
-uint8_t _wpValue;
-
-    
-    int  requestRead(RS485_RemoteDef* d, uint8_t pinIndex);
-// Incoming packet parser state
-bool        _inPacket = false;
-char        _rxBuf[64];
-uint8_t     _rxPos = 0;
-
-// Internal helpers
-void handleIncoming();
-void processPacket(const char* p);
-
-// Poll/Reply state tracking
-bool _waitingForReply = false;        // true after sending <P ...>
-unsigned long _replyDeadline = 0;     // millis() when reply must arrive
-uint8_t _pollIndex = 0;               // which device to poll next
-
-
-   
 };
 
 

@@ -52,24 +52,26 @@ VIRTUAL_TURNOUT(t,desc) \
 
 
 
-#define TURNOUTBUTTON(throwpin,closepin,turnout,TbuttonAlias,CbuttonAlias)\
-ALIAS(CbuttonAlias,closepin) \
-ALIAS(TbuttonAlias,throwpin) \
+#define TURNOUTBUTTON(throwbtn,closebtn,turnout,TbuttonAlias,CbuttonAlias)\
+ALIAS(CbuttonAlias,closebtn) \
+ALIAS(TbuttonAlias,throwbtn) \
 DONE \
-SEQUENCE(throwpin) \
+SEQUENCE(throwbtn) \
     AT(TbuttonAlias) \
     IFCLOSED(turnout) \
         THROW(turnout) \
     ENDIF \
-    DONE \
-SEQUENCE(closepin) \
+    FOLLOW(throwbtn) \
+SEQUENCE(closebtn) \
     AT(CbuttonAlias) \
     IFTHROWN(turnout) \
         CLOSE(turnout) \
     ENDIF \
-    DONE 
-
-
+    FOLLOW(closebtn)\
+    AUTOSTART \
+START(throwbtn) \
+START(closebtn) \
+DONE
 /* AFTER(buttonAlias)\
 THROW(turnout)\
 DONE*/
