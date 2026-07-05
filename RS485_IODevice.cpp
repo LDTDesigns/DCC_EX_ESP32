@@ -57,7 +57,7 @@ void RS485_IODevice::updateInput(VPIN vpin, int value)
     int pin = vpin - _firstVpin;
     _value[pin] = value; // Update local array state
 
-#if RS485_DEBUG >= 1
+#if RS485_DEBUG >= 3
     DIAG(F("[RS485_IODevice::updateInput] vpin=%u value=%d"), vpin, value);
 
 #endif
@@ -97,7 +97,7 @@ void RS485_IODevice::_ProcessMask(uint16_t mask)
 {
 mask = (~mask) & 0xFF;
  // lets bit flip as logic is inverted from pcf modules
-#if RS485_DEBUG >= 1
+#if RS485_DEBUG >= 2
     DIAG(F("[RS485_IODevice::_ProcessMask] flippedMask=%s"),String(mask,BIN).c_str());
 #endif
     // take each bit of mask and send it to write to the corresponding VPINs of this device.  The mask is a 16-bit value where each bit represents the state of a pin (1 for HIGH, 0 for LOW). The first pin corresponds to the least significant bit (LSB) of the mask.

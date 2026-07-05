@@ -24,11 +24,7 @@ bool _ready;
 unsigned long _nextReadyTime;
 private:
    
-
-
 uint8_t _lastValue[16];   // safe upper bound
-
-
 
 //FIFO Queueing system to overcome charge times
 static const uint8_t MAX_QUEUE = 16;
@@ -36,6 +32,9 @@ static const uint8_t MAX_QUEUE = 16;
 uint8_t _queue[MAX_QUEUE];
 uint8_t _queueHead = 0;
 uint8_t _queueTail = 0;
+
+bool _coilActive = false;
+unsigned long _coilOffTime = 0;
 
 ////////////////////////////////////////////////////////////////
     void setPin(uint8_t pin, bool on);

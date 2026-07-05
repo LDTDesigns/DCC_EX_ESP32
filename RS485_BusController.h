@@ -12,15 +12,19 @@ public:
 
     void addNode(RS485_Node* node);
 void init();
-    protected:
+ void queueWrite(uint8_t node, I2CAddress i2c, uint16_t mask);
+
+ protected:
     void _loop(unsigned long now) override;
 void _display()override;
-
+ 
 private:
     RS485BusController(HardwareSerial& bus, uint8_t dePin, uint16_t intervalMs);
 
     HardwareSerial* _bus;
     uint8_t _dePin;
+   const unsigned long _intervalMs;
+  
 
 struct PendingWrite {
     uint8_t node;
@@ -30,7 +34,7 @@ struct PendingWrite {
 };
 
 PendingWrite _pendingWrite;
-
+  unsigned long lastPollTime=0;
 
    RS485_Node* _nodes[MAX_NODES];   // fixed pointer array
     uint8_t _nodeCount;                    // how many are actually used
@@ -45,7 +49,7 @@ PendingWrite _pendingWrite;
     void _begin()override;
     void sendPoll(RS485_Node* _currentNode,IODevice* _currentDevice);
     void sendWriteFrame(const PendingWrite& w);
-    void queueWrite(uint8_t node, I2CAddress i2c, uint16_t mask);
+  
     void handleIncoming();
     void processReply(const char* frame);
     bool replyReady();
@@ -67,7 +71,14 @@ RS485_Node* getNodeByAddress(uint8_t addr);
     bool     _replyReady = false;
     uint8_t  _replyNode  = 0;
     I2CAddress _replyI2C   = 0;
-    uint16_t _replyMask  = 0;
+    int _replyMask  = 0;
+    bool     _replyAlive = false;
+    enum ReplyType {
+        REPLY_NONE,
+        REPLY_DISCOVERY,
+        REPLY_POLL,
+        REPLY_WRITE
+    } _replyType = REPLY_NONE;      
 };
 
 #endif //RS485_BUS_CONTROLLER

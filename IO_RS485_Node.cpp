@@ -24,7 +24,7 @@ RS485_Node::RS485_Node(uint8_t nodeAddress,RS485BusController* bus)
   //  DIAG(F("[RS485] Node %u constructed on bus %p"), _nodeAddress,_busController);
    // dont create plloer here use the iodevice to poll in loop
   //new RS485_Poller(this, 100); // poll every 50ms //// Create proxy IODevice for this remote device based on the flag or useraddin method.
-_begin();
+//_begin();
 }
 
 
@@ -42,7 +42,7 @@ _begin();
 // Device registration
 // ======================================================================
 
-void RS485_Node::addDevice(IODevice* dev,I2CAddress i2c, VPIN start, uint8_t pins, const char* type) {
+void RS485_Node::addDevice(IODevice* dev,I2CAddress i2c, VPIN start, uint8_t pins, const char* name, IODevice::ConfigTypeEnum type) {
     if (_count >= MAX_RS485_DEVICES) {
 #if RS485_DEBUG >= 1
         DIAG(F("[RS485] Node %u: device registry FULL"), _nodeAddress);
@@ -53,14 +53,15 @@ void RS485_Node::addDevice(IODevice* dev,I2CAddress i2c, VPIN start, uint8_t pin
     _dev[_count].i2c      = i2c;
 _dev[_count].start    = start;
 _dev[_count].pins     = pins;
-_dev[_count].type     = type;
+_dev[_count].type     = name;
 _dev[_count].lastMask = 0xFFFF;   // correct initial value
- _dev[_count].dev= dev;
+_dev[_count].configType = type; // Default to input
+_dev[_count].dev= dev;
 
 #if RS485_DEBUG >= 0
     DIAG(F("[RS485] Node %u added %s I2C %s VPIN %u-%u"),
          _nodeAddress,
-         type,
+         name,
          i2c.toString(),
          start,
          start + pins - 1);
@@ -95,21 +96,34 @@ IODevice* RS485_Node::nextDevice()
     if (_count == 0)
         return nullptr;
 
-    // Loop until we find an online device or exhaust all
+    unsigned long now = millis();
+
     for (uint8_t i = 0; i < _count; i++)
     {
         RS485_RemoteDef& d = _dev[_nextDeviceIndex];
-        // advance index for next call
         _nextDeviceIndex = (_nextDeviceIndex + 1) % _count;
 
-        if (d.online && d.dev != nullptr)
+        if (d.dev == nullptr)
+            continue;
+
+        // ⭐ Only poll input devices
+        if (d.configType != IODevice::CONFIGURE_INPUT)
+            continue;
+
+        // ⭐ Device is online OR recently seen
+        bool recentlySeen = (now - d.lastSeen) <= DEVICE_TIMEOUT;
+
+        if (d.online || recentlySeen)
             return d.dev;
     }
 
-    return nullptr;  // no online devices
+    return nullptr;
 }
 
-
+void RS485_Node::sendMask(I2CAddress i2c, uint8_t mask) {
+    if (_busController)
+        _busController->queueWrite(_nodeAddress, i2c, mask);
+}
 
 // ======================================================================
 // TX direction control

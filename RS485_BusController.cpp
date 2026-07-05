@@ -3,7 +3,7 @@
 #define REPLY_TIMEOUT 50
 #define WRITE_REPLY_TIMEOUT 50
 #define RS485_BAUD 19200
-#define BUS_DIAG 4
+#define BUS_DIAG 2
 
 RS485BusController* RS485BusController::create(HardwareSerial& bus, uint8_t dePin, uint16_t intervalMs) {
     RS485BusController* bc = new RS485BusController(bus, dePin, intervalMs);
@@ -12,7 +12,7 @@ RS485BusController* RS485BusController::create(HardwareSerial& bus, uint8_t dePi
 }
 
 RS485BusController::RS485BusController(HardwareSerial& bus, uint8_t dePin, uint16_t intervalMs)
-    : _bus(&bus), _dePin(dePin),_nodeCount(0)
+    : _bus(&bus), _dePin(dePin),_nodeCount(0),_intervalMs(intervalMs)
 {
     pinMode(_dePin, OUTPUT);
     digitalWrite(_dePin, LOW);   // receive mode
@@ -90,7 +90,7 @@ void RS485BusController::sendPoll( RS485_Node* node,IODevice* device){
     digitalWrite(_dePin, LOW);
 
 
-#if BUS_DIAG >= 2
+#if BUS_DIAG >= 3
     DIAG(F("[RS485] Poll → Node %u Dev %s"),
          node->_nodeAddress, i2c.toString());
 #endif
@@ -141,21 +141,56 @@ void RS485BusController::handleIncoming()
 void RS485BusController::processReply(const char* frame)
 {
     char tag;
-    uint8_t node;
-    uint16_t rawI2C;
+    uint8_t nodeaddr;
+    uint8_t rawI2C;
     uint16_t mask;
+    char aliveStr[8];
+#if BUS_DIAG >= 3
+DIAG(F("[BusController] Processing reply: %s"), frame);
+#endif
+    //
+    // 1. Try to parse discovery reply: <RD node i2c alive>
+    //
 
-    int n = sscanf(frame, "<%c %hhu %hu %hu>", &tag, &node, &rawI2C, &mask);
+ if (sscanf(frame, "<RD %hhu %hhu %7[^>]>", &nodeaddr, &rawI2C, aliveStr) == 3)
 
-    if (n != 4 || tag != 'R')
+    {
+        #if BUS_DIAG >= 4
+        DIAG(F("Parsed node=%u rawI2C=%u alive=%s"), nodeaddr, rawI2C, aliveStr);
+#endif
+        _replyNode= nodeaddr;
+        _replyType = REPLY_DISCOVERY;
+        _replyI2C  = I2CAddress((uint8_t)rawI2C);
+        _replyAlive = (strcmp(aliveStr, "true") == 0);
+        _replyReady = true;
+#if BUS_DIAG >= 4
+        DIAG(F("[BusController] Discovery reply: Node %u I2C %s Alive=%s"),
+             _replyNode, 
+             _replyI2C.toString(),
+             _replyAlive ? "true" : "false");
+
+     #endif
+
+
         return;
+    }
 
-    _replyNode = node;
-    _replyI2C  = I2CAddress((uint8_t) rawI2C);
-    _replyMask = mask;
-    _replyReady = true;
+    //
+    // 2. Try to parse normal reply: <R node i2c mask>
+    //
+  
+    if (sscanf(frame, "<%c %hhu %hhu %hu>", &tag, &nodeaddr, &rawI2C, &mask) == 4 && tag == 'R')
+    {
+        _replyType = REPLY_POLL;
+        _replyNode = nodeaddr;
+        _replyI2C  = I2CAddress((uint8_t)rawI2C);
+        _replyMask = mask;
+        _replyReady = true;
+        return;
+    }
+
+    // Unknown frame — ignore
 }
-
 
 bool RS485BusController::replyReady() 
 {
@@ -171,7 +206,7 @@ void RS485BusController::routeReplyToNode()
 
     if (!node)
     {
-    #ifdef BUS_DIAG >= 1
+    #if BUS_DIAG >= 1
          DIAG(F("[BusController] Reply for unknown node %d"), (int)_replyNode);
          #endif
     
@@ -184,17 +219,21 @@ void RS485BusController::routeReplyToNode()
 
         if (d.i2c == _replyI2C)
         {
-            d.online = true;
+          
+            if(_replyMask!= -1){
+            d.lastSeen = millis();
+               d.online = true;/// Update last seen timestamp -1 means node didnt find it
+            }
             if(d.lastMask!=_replyMask)
             {
             d.lastMask = _replyMask;
             }
             // Optional: log successful routing
-            #ifdef BUS_DIAG >= 1
-            DIAG(F("[BusController] Node %d device $s updated mask=0x%02X"),
+            #if BUS_DIAG >= 3
+            DIAG(F("[BusController] Node %d device %s updated mask=0x%02X"),
                  (int)_replyNode,
                  _replyI2C.toString(),
-                 (int)_replyMask);
+                 _replyMask);
                  #endif
 
             return;
@@ -218,9 +257,10 @@ void RS485BusController::queueWrite(uint8_t node, I2CAddress i2c, uint16_t mask)
 void RS485BusController::sendWriteFrame(const PendingWrite& w)
 {
 #if BUS_DIAG >= 1
-    DIAG(F("[RS485] SEND WRITE → <W %u %s 0x%04X>"),
+I2CAddress i2c = w.i2c;
+    DIAG(F("[BusController] SEND WRITE → <W %u %s 0x%04X>"),
          w.node,
-         w.i2c.toString(),
+        i2c.toString(),
          w.mask);
 #endif
 
@@ -232,7 +272,7 @@ void RS485BusController::sendWriteFrame(const PendingWrite& w)
     _bus->print(' ');
     _bus->print(w.node);
     _bus->print(' ');
-    _bus->print(w.i2c.toString());
+    _bus->print((unsigned int)i2c);
     _bus->print(' ');
     _bus->print(w.mask, HEX);
     _bus->print('>');
@@ -263,7 +303,12 @@ void RS485BusController::logTimeout() {
 
         if (d.dev == _currentDevice)
         {
+DIAG(F("[RS485] Timeout waiting for reply from Node %u Device %s"),
+             _currentNode->getNodeAddress(),
+             d.i2c.toString());
+
             d.online = false;
+            d.lastSeen=millis();
             break;
         }
     }
@@ -313,20 +358,28 @@ void RS485BusController::_loop(unsigned long now) {
 }
 
     // Not waiting → send next poll
+if(millis()-lastPollTime < _intervalMs)
+{
+   // DIAG(F("[RS485] Waiting for next poll interval: %lu ms remaining"), _intervalMs - (millis() - lastPollTime));
+    return; // wait for the next poll interval
+}
     IODevice* dev = _currentNode->nextDevice();
 
 if (dev == nullptr)
 {
     _currentNode = nextNode();     // only when device list wraps
     dev = _currentNode->nextDevice();
+    // once weve polled all the nodes and devices, we will wrap around and start again , but add the poll deelay to avoid flooding the bus with polls
 }
 
 _currentDevice = dev;
 
     sendPoll(_currentNode,_currentDevice);
+    lastPollTime = millis();
 
     _replyDeadline = millis() + REPLY_TIMEOUT;
     _waitingReply  = true;
+
 }
 void RS485BusController::scanNode(RS485_Node* node)
 {
@@ -334,66 +387,171 @@ void RS485BusController::scanNode(RS485_Node* node)
 
     sendDiscovery(addr);
 
-    unsigned long deadline = millis() + 50;
+    unsigned long deadline = millis() + 100;
+
+    bool nodeReplied = false;
+   // const uint8_t registered[] = { 0x20, 0x38 };
+   // const uint8_t regCount = sizeof(registered) / sizeof(registered[0]);
+uint8_t regCount = node->_count;
+
+    I2CAddress discovered[MAX_RS485_DEVICES + 1];   // +1 for overflow
+    uint8_t discoveredCount = 0;
 
     // Clear online flags
     for (uint8_t i = 0; i < node->_count; i++)
         node->_dev[i].online = false;
 
+    // Collect replies
     while (millis() < deadline)
     {
         handleIncoming();
 
-        if (_replyReady)
+        if (_replyReady && _replyType == REPLY_DISCOVERY)
         {
-              // Only process replies for THIS node
-            if (_replyNode == addr)
+            nodeReplied = true;
+
+            if (_replyAlive)
             {
-                I2CAddress i2c = _replyI2C;
-                bool found = false;
-
-                // Match reply to registered devices
-                for (uint8_t i = 0; i < node->_count; i++)
-                {
-                    if (node->_dev[i].i2c == i2c)
-                    {
-                        node->_dev[i].online = true;
-                        DIAG(F("[BusController] Node %u device %s online"), addr, i2c.toString());
-                        found = true;
-                        break;
-                    }
-                }
-
-                if (!found)
-                {
-                    DIAG(F("[BusController] Node %u reports UNREGISTERED device at I2C %s"),
-                         addr, i2c.toString());
-                }
+                if (discoveredCount < MAX_RS485_DEVICES + 1)
+                    discovered[discoveredCount++] = _replyI2C;
             }
 
-            _replyReady = false;
+            _replyReady = false;   // consume this reply
         }
     }
+DIAG(F("  Raw discoveredCount = %u"), discoveredCount);
+for (uint8_t k = 0; k < discoveredCount; k++) {
+    DIAG(F("  discovered[%u] = 0x%s"), k, discovered[k].toString());
+}
+DIAG(F("  Registered list dump:"));
+for (uint8_t i = 0; i < regCount; i++) {
+    DIAG(F("    registered[%u].i2c = 0x%s"), 
+         i, node->_dev[i].i2c.toString());
+}
+
+
+    DIAG(F("Node %u → Discovery Summary"), node->getNodeAddress());
+
+    if (!nodeReplied)
+    {
+        DIAG(F("  Status: NO REPLY"));
+        return;
+    }
+DIAG(F("  Status: REPLIED, %u devices discovered"), discoveredCount);
+DIAG(F("  Registered devices: %u"), regCount);
+    // Check registered devices
+    for (uint8_t i = 0; i < regCount; i++)
+    {
+        I2CAddress reg = node->_dev[i].i2c;
+        bool found = false;
+
+        for (uint8_t j = 0; j < discoveredCount; j++)
+        {
+            DIAG(F("  Checking discovered device %s against registered %s"),
+                 discovered[j].toString(), reg.toString());
+
+            if (discovered[j] == reg)
+            {
+                DIAG(F("  Match found for registered device %s"), reg.toString());
+                found = true;
+                break;
+            }
+            DIAG(F("  No match for registered device %s against discovered %s"), reg.toString(), discovered[j].toString());
+        }
+
+        if (found){
+            DIAG(F("  Present:   0x%s"), reg.toString());
+            node->_dev[i].online = true;  // mark as online
+    }
+        else{
+            DIAG(F("  Missing:   0x%s"), reg.toString());
+              node->_dev[i].online = false;  // mark as offline
+        }
+    }
+
+    // Check extras
+    for (uint8_t j = 0; j < discoveredCount; j++)
+    {
+        I2CAddress det = discovered[j];
+        bool isRegistered = false;
+
+        for (uint8_t i = 0; i < regCount; i++)
+        {
+            if (node->_dev[i].i2c == det)
+            {
+                isRegistered = true;
+                break;
+            }
+        }
+
+        if (!isRegistered)
+            DIAG(F("  Extra:     0x%s"), det.toString());
+    }
+
+    if (discoveredCount > MAX_RS485_DEVICES)
+    {
+        DIAG(F("  ERROR: Too many devices detected (%u > %u)"),
+             discoveredCount, MAX_RS485_DEVICES);
+    }
+}
+
+            // Only process replies for THIS node
+            /* if (_replyNode == addr && _replyType == REPLY_DISCOVERY)
+            {
+                I2CAddress i2c = _replyI2C;
+                bool alive = _replyAlive;   // <— NEW: read alive flag
+
+                if (!alive)
+                {
+                    DIAG(F("[BusController] Node %u reports device at %s is NOT present"),
+                         addr, i2c.toString());
+                }
+                else
+                {
+                    bool found = false;
+
+                    // Match reply to registered devices
+                    for (uint8_t i = 0; i < node->_count; i++)
+                    {
+                        if (node->_dev[i].i2c == i2c)
+                        {
+                            node->_dev[i].online = true;
+                            DIAG(F("[BusController] Node %u device %s online"),
+                                 addr, i2c.toString());
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if (!found)
+                    {
+                        DIAG(F("[BusController] Node %u reports UNREGISTERED device at I2C %s"),
+                             addr, i2c.toString());
+                    }
+                }
+            }
+ */
+    //         _replyReady = false;
+    //     }
+    // }
 
     // Log offline registered devices
-
-if (node->_count == 0)
-{
-    DIAG(F("[BusController] Node %u has NO registered devices"), addr);
-}
-else
-{
-    for (uint8_t i = 0; i < node->_count; i++)
-    {
-        if (!node->_dev[i].online)
-        {
-            DIAG(F("[BusController] Node %u device at %s offline"),
-                 addr, node->_dev[i].i2c.toString());
-        }
-    }
-}
-    
-}
+    // if (node->_count == 0)
+    // {
+    //     DIAG(F("[BusController] Node %u has NO registered devices"), addr);
+    // }
+    // else
+    // {
+    //     for (uint8_t i = 0; i < node->_count; i++)
+    //     {
+    //         if (!node->_dev[i].online)
+    //         {
+    //             DIAG(F("[BusController] Node %u device at %s offline"),
+    //                  addr, node->_dev[i].i2c.toString());
+    //         }
+    //     }
+    // }
+//}
 void RS485BusController::sendDiscovery(uint8_t nodeAddr)
 {
      // Log the discovery request

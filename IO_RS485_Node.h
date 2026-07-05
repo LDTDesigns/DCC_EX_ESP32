@@ -19,12 +19,14 @@ struct RS485_RemoteDef {
     uint16_t lastMask; // Store the last known state of the device  
     IODevice* dev = nullptr; 
     bool online =false;
+    unsigned long lastSeen = 0; // Track when the device was last seen
+    IODevice::ConfigTypeEnum configType = IODevice::CONFIGURE_INPUT; // Default to input, can be set when adding the device
 
 };
 
 #define MAX_RS485_DEVICES 8
 //#define MAX_NODES 16
-
+#define DEVICE_TIMEOUT 5000 // 5 seconds timeout for device to be considered offline
 class RS485_Node {
 public:
  //static RS485_Node* registry[MAX_NODES]; 
@@ -39,9 +41,9 @@ public:
 
     // Called from loop()
     void poll(unsigned long now);
-
+void sendMask(I2CAddress i2c, uint8_t mask);
   void sendWrite(I2CAddress i2c, uint8_t pin, uint8_t value);
-  void addDevice(IODevice* dev, I2CAddress i2c, VPIN start, uint8_t pins, const char* type);
+  void addDevice(IODevice* dev, I2CAddress i2c, VPIN start, uint8_t pins, const char* name, IODevice::ConfigTypeEnum type = IODevice::CONFIGURE_INPUT);
   IODevice* nextDevice();
 
   private:

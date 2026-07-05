@@ -34,6 +34,7 @@ void BaseCoilDriver::setPin(uint8_t pin, bool on) {
 }
 
 void BaseCoilDriver::_write(VPIN vpin, int value) {
+    DIAG(F("[BaseCoilDriver] _write vpin=%u value=%d"), (unsigned)vpin, value);
     uint8_t pin = vpin - _firstVpin;
     if (pin >= _nPins) return;
 
@@ -61,6 +62,12 @@ void BaseCoilDriver::_write(VPIN vpin, int value) {
 
 
 void BaseCoilDriver::_loop(unsigned long now) {
+if (_coilActive && now >= _coilOffTime) {
+        // Turn everything off (all pins LOW = safe)
+        outputToDevice(0x00);
+        _coilActive = false;
+    }
+
     if (!_ready && now < _nextReadyTime)
         return;
 
@@ -80,13 +87,15 @@ void BaseCoilDriver::fireCoil(uint8_t pin, unsigned long now) {
 outputToDevice(value);
   //  I2CManager.write(_i2c,1, value);
 
+     _coilActive = true;
+    _coilOffTime = now + _pulseDuration;   // pulseDuration in m
     // Pulse duration
-    delayMicroseconds(_pulseDuration);
+   // delayMicroseconds(_pulseDuration);
 
     // Turn everything off (all pins LOW = safe)
    // call to class method
-   value=0x00;
-   outputToDevice(value);
+  // value=0x00;
+  // outputToDevice(value);
   //  I2CManager.write(_i2c,1, 0x00);
 
 

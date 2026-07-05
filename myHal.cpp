@@ -79,7 +79,7 @@ RS485BusController* Bus1 =RS485BusController::create(rs485Bus,max485TogglePin,50
  RS485_Node* node2 =RS485_Node::create(2,Bus1);
 //RemoteCoilDriver::create(node1,0x38,200,8,3000,75);
 RS485_IODevice::create(node1,0x20,232,8);
-RemoteCoilDriver::create(node1,0x38,200,8,3000,75);
+RemoteCoilDriver::create(node1,0x20,200,8,3000,75);
 Bus1->init();
 }
 

@@ -322,14 +322,16 @@ void IODevice::addDevice(IODevice *newDevice, IODevice *slaveDevice /* = NULL */
 
 // Private helper function to locate a device by VPIN.  Returns NULL if not found.
 //  This is performance-critical, so minimises the calculation and function calls necessary.
-IODevice *IODevice::findDevice(VPIN vpin) { 
-  for (IODevice *dev = _firstDevice; dev != 0; dev = dev->_nextDevice) {
-    VPIN firstVpin = dev->_firstVpin;
-    if (vpin >= firstVpin && vpin < firstVpin+dev->_nPins)
-      return dev;
+  IODevice *IODevice::findDevice(VPIN vpin) { 
+    for (IODevice *dev = _firstDevice; dev != 0; dev = dev->_nextDevice) {
+      VPIN firstVpin = dev->_firstVpin;
+
+      if (vpin >= firstVpin && vpin < firstVpin+dev->_nPins)
+        return dev;
+    }
+    DIAG(F("findDevice: VPIN %u not found!"), (unsigned)vpin);
+    return NULL;
   }
-  return NULL;
-}
 
 // Instance helper function for filter devices (layered over others).  Looks for 
 //  a device that is further down the chain than the current device.
