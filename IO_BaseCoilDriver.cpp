@@ -1,5 +1,6 @@
 #include "IO_BaseCoilDriver.h"
 #include "DIAG.h"
+#define BASE_COIL_DIAG 1
 
 BaseCoilDriver::BaseCoilDriver(I2CAddress i2c, VPIN startVpin, uint8_t nPins,unsigned long chargeMs=5000,unsigned long pulse=50)
 : IODevice( startVpin, nPins),
@@ -34,7 +35,9 @@ void BaseCoilDriver::setPin(uint8_t pin, bool on) {
 }
 
 void BaseCoilDriver::_write(VPIN vpin, int value) {
+    #if BASE_COIL_DIAG >=2
     DIAG(F("[BaseCoilDriver] _write vpin=%u value=%d"), (unsigned)vpin, value);
+    #endif
     uint8_t pin = vpin - _firstVpin;
     if (pin >= _nPins) return;
 

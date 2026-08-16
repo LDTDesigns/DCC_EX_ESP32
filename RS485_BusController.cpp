@@ -2,8 +2,11 @@
 
 #define REPLY_TIMEOUT 50
 #define WRITE_REPLY_TIMEOUT 50
-#define RS485_BAUD 19200
+#define RS485_BAUD 57600
 #define BUS_DIAG 2
+
+ uint16_t RS485BusController::nextMsgId = 1;
+
 
 RS485BusController* RS485BusController::create(HardwareSerial& bus, uint8_t dePin, uint16_t intervalMs) {
     RS485BusController* bc = new RS485BusController(bus, dePin, intervalMs);
@@ -12,7 +15,7 @@ RS485BusController* RS485BusController::create(HardwareSerial& bus, uint8_t dePi
 }
 
 RS485BusController::RS485BusController(HardwareSerial& bus, uint8_t dePin, uint16_t intervalMs)
-    : _bus(&bus), _dePin(dePin),_nodeCount(0),_intervalMs(intervalMs)
+    : _bus(&bus), _dePin(dePin),_intervalMs(intervalMs),_nodeCount(0)
 {
     pinMode(_dePin, OUTPUT);
     digitalWrite(_dePin, LOW);   // receive mode
@@ -49,6 +52,15 @@ void RS485BusController::addNode(RS485_Node* node)
          (int)addr,
          (int)_nodeCount);
 }
+bool RS485BusController::pollDue()
+{
+
+    if (millis()>lastPollTime+_intervalMs){
+        lastPollTime=millis();
+        return true;
+    }
+    return false;
+}
 
 void RS485BusController::sendPoll( RS485_Node* node,IODevice* device){
 
@@ -69,14 +81,11 @@ void RS485BusController::sendPoll( RS485_Node* node,IODevice* device){
     if (!found)
         return;     // device not registered on this node
 
-
     // --- Switch bus to TX mode ---
     digitalWrite(_dePin, HIGH);
-
-
     // --- Send poll frame ---
     HardwareSerial* s = _bus;
-
+delayMicroseconds(30);
     s->print("<P ");
     s->print((int)node->_nodeAddress);      // node address
     s->print(" ");
@@ -84,16 +93,21 @@ void RS485BusController::sendPoll( RS485_Node* node,IODevice* device){
     s->print(">");
 
     s->flush();                     // ensure full contiguous burst
-
-
     // --- Switch bus back to RX mode ---
+    delayMicroseconds(30);
     digitalWrite(_dePin, LOW);
 
-
+busState=BUS_WAIT_REPLY;
+_replyDeadline=millis()+REPLY_TIMEOUT;
+expectedReply=REPLY_POLL;
 #if BUS_DIAG >= 3
     DIAG(F("[RS485] Poll → Node %u Dev %s"),
          node->_nodeAddress, i2c.toString());
 #endif
+}
+
+uint16_t RS485BusController::allocateMsgId() {
+    return  nextMsgId++;
 }
 
 uint8_t RS485BusController::getNodeCount() const {
@@ -138,59 +152,85 @@ void RS485BusController::handleIncoming()
         }
     }
 }
+
 void RS485BusController::processReply(const char* frame)
 {
-    char tag;
-    uint8_t nodeaddr;
-    uint8_t rawI2C;
-    uint16_t mask;
-    char aliveStr[8];
-#if BUS_DIAG >= 3
-DIAG(F("[BusController] Processing reply: %s"), frame);
-#endif
-    //
-    // 1. Try to parse discovery reply: <RD node i2c alive>
-    //
+    parsedReply = REPLY_NONE;
+    _replyReady = false;
 
- if (sscanf(frame, "<RD %hhu %hhu %7[^>]>", &nodeaddr, &rawI2C, aliveStr) == 3)
+    // Quick header check
+    char type = frame[1];
 
-    {
-        #if BUS_DIAG >= 4
-        DIAG(F("Parsed node=%u rawI2C=%u alive=%s"), nodeaddr, rawI2C, aliveStr);
-#endif
-        _replyNode= nodeaddr;
-        _replyType = REPLY_DISCOVERY;
-        _replyI2C  = I2CAddress((uint8_t)rawI2C);
-        _replyAlive = (strcmp(aliveStr, "true") == 0);
-        _replyReady = true;
-#if BUS_DIAG >= 4
-        DIAG(F("[BusController] Discovery reply: Node %u I2C %s Alive=%s"),
-             _replyNode, 
-             _replyI2C.toString(),
-             _replyAlive ? "true" : "false");
+    // -----------------------------
+    // 1. ACK reply: <A msgId status>
+    // -----------------------------
+    if (type == 'a') {
+        uint16_t ackMsgId;
+        char statusStr[8];
 
-     #endif
+        if (sscanf(frame, "<a %u %7[^>]>", &ackMsgId, statusStr) == 2) {
+            _replyMsgId = ackMsgId;
+            _replyStatus = (strcmp(statusStr, "OK") == 0);
+            parsedReply = REPLY_ACK;
+            _replyReady = true;
+            return;
+        }
 
+        if (sscanf(frame, "<a %u>", &ackMsgId) == 1) {
+            _replyMsgId = ackMsgId;
+            _replyStatus = true;
+            parsedReply = REPLY_ACK;
+            _replyReady = true;
+            return;
+        }
 
-        return;
+        return; // malformed ACK
     }
 
-    //
-    // 2. Try to parse normal reply: <R node i2c mask>
-    //
-  
-    if (sscanf(frame, "<%c %hhu %hhu %hu>", &tag, &nodeaddr, &rawI2C, &mask) == 4 && tag == 'R')
-    {
-        _replyType = REPLY_POLL;
-        _replyNode = nodeaddr;
-        _replyI2C  = I2CAddress((uint8_t)rawI2C);
-        _replyMask = mask;
-        _replyReady = true;
-        return;
+    // -----------------------------
+    // 2. Discovery reply: <RD node i2c alive>
+    // -----------------------------
+    if (type == 'd') {
+        uint8_t nodeaddr, rawI2C;
+        char aliveStr[8];
+
+        if (sscanf(frame, "<d %hhu %hhu %7[^>]>", &nodeaddr, &rawI2C, aliveStr) == 3) {
+            _replyNode  = nodeaddr;
+            _replyI2C   = I2CAddress(rawI2C);
+            _replyAlive = (strcmp(aliveStr, "true") == 0);
+            parsedReply = REPLY_DISCOVERY;
+            _replyReady = true;
+            return;
+        }
+
+        return; // malformed discovery
     }
 
-    // Unknown frame — ignore
+    // -----------------------------
+    // 3. Poll reply: <R node i2c mask>
+    // -----------------------------
+    if (type == 'r') {
+        uint8_t nodeaddr, rawI2C;
+        uint16_t mask;
+        char tag;
+
+        if (sscanf(frame, "<%c %hhu %hhu %u>", &tag, &nodeaddr, &rawI2C, &mask) == 4 && tag == 'r') {
+            _replyNode = nodeaddr;
+            _replyI2C  = I2CAddress(rawI2C);
+            _replyMask = mask;
+            parsedReply = REPLY_POLL;
+            _replyReady = true;
+            return;
+        }
+
+        return; // malformed poll
+    }
+
+    // -----------------------------
+    // Unknown frame
+    // -----------------------------
 }
+
 
 bool RS485BusController::replyReady() 
 {
@@ -200,8 +240,6 @@ bool RS485BusController::replyReady()
 
 void RS485BusController::routeReplyToNode()
 {
-    _replyReady = false;
-
     RS485_Node* node = getNodeByAddress(_replyNode);
 
     if (!node)
@@ -240,48 +278,123 @@ void RS485BusController::routeReplyToNode()
         }
     }
 }
-void RS485BusController::queueWrite(uint8_t node, I2CAddress i2c, uint16_t mask)
+void RS485BusController::queueWrite(uint8_t node, I2CAddress i2c, uint16_t mask, uint8_t pin, uint8_t profile, uint16_t duration, uint8_t deviceType)
 {
-#if BUS_DIAG >= 1
-    DIAG(F("[RS485] QUEUE WRITE → Node %u I2C %s Mask 0x%04X"),
-         node, i2c.toString(), mask);
+
+uint8_t nextTail = (writeTail + 1) % FIFO_SIZE;
+
+    if (nextTail == writeHead) {
+        DIAG(F("[RS485] FIFO FULL — dropping write"));
+        return;
+    }
+
+    QueuedWrite &w = writeFifo[writeTail];
+    w.node   = node;
+    w.i2c    = i2c;
+    w.mask   = mask;
+    w.msgId  = allocateMsgId();
+    w.retries = 0;
+    w.valid  = true;
+    w.pin = pin;
+    w.profile = profile;
+    w.duration = duration;  
+    w.deviceType = deviceType;
+    writeTail = nextTail;
+
+    #if BUS_DIAG >= 2
+    DIAG(F("[BusController] QUEUE WRITE → Node %u I2C %s Mask 0x%04X Pin %u Profile %u Duration %u DeviceType %u"),
+         node, i2c.toString(), mask, pin, profile, duration, deviceType);
 #endif
 
-    _pendingWrite.node  = node;
-    _pendingWrite.i2c   = i2c;
-    _pendingWrite.mask  = mask;
-    _pendingWrite.valid = true;
 }
 
 
-void RS485BusController::sendWriteFrame(const PendingWrite& w)
+void RS485BusController::sendWriteFrame(uint8_t node, I2CAddress i2c, uint16_t mask, uint8_t pin, uint8_t profile, uint16_t duration, uint8_t deviceType, uint16_t msgId)
 {
-#if BUS_DIAG >= 1
-I2CAddress i2c = w.i2c;
-    DIAG(F("[BusController] SEND WRITE → <W %u %s 0x%04X>"),
-         w.node,
-        i2c.toString(),
-         w.mask);
-#endif
-
-    // --- Enable TX ---
+   // --- Enable TX ---
     digitalWrite(_dePin, HIGH);
-    delayMicroseconds(50);   // allow driver to settle
-    _bus->print('<');
-    _bus->print('W');
+    delayMicroseconds(30);   // allow driver to settle
+       _bus->print('<');
+  
+    switch (deviceType) {
+        case DEVICE_TYPE_DEFAULT:
+            // Default behavior, no additional handling needed
+            #if BUS_DIAG >= 2
+    DIAG(F("[BusController] SEND WRITE → <W %u %s %u MsgID %u>"),
+         node,
+        i2c.toString(),
+         mask,
+         msgId);
+#endif
+            _bus->print('W');
     _bus->print(' ');
-    _bus->print(w.node);
+    _bus->print(node);
     _bus->print(' ');
     _bus->print((unsigned int)i2c);
     _bus->print(' ');
-    _bus->print(w.mask, HEX);
-    _bus->print('>');
-     _bus->flush();           // ensure all bytes leave UART
+             _bus->print(mask, DEC);
+            break;
+        case DEVICE_TYPE_INPUT:
+            // Handle input device specifics if needed
+            break;
+        case DEVICE_TYPE_OUTPUT:
+            // Handle output device specifics if needed
+            break;
+        case DEVICE_TYPE_SERVO:
+            // Handle servo device specifics if needed
+            break;
+        case DEVICE_TYPE_ANALOGOUTPUT:
+            // Handle analog output device specifics if needed
+            break;
+        case DEVICE_TYPE_ANALOGINPUT:
+            // Handle analog input device specifics if needed
+            break;
+        case DEVICE_TYPE_TURNTABLE:{
 
-    delayMicroseconds(50);   // allow last byte to exit transceiver
+            // Handle turntable device specifics if needed
+            // Take the 16 bit mask and split it into LSB and MSB,add activity
+             // TURNTABLE: <T node i2c msb lsb activity>
+            uint8_t lsb = mask & 0xFF;
+            uint8_t msb = (mask >> 8) & 0xFF;
+                        #if BUS_DIAG >= 2
+    DIAG(F("[BusController] SEND WRITE → <T %u %s %u %u %u MsgID %u>"),
+         node, i2c.toString(), msb, lsb,
+         profile,
+         msgId);
+#endif
+             _bus->print('T');
+    _bus->print(' ');
+    _bus->print(node);
+    _bus->print(' ');
+    _bus->print((unsigned int)i2c);
+    _bus->print(' ');
+            _bus->print(msb, DEC);  
+            _bus->print(' ');
+            _bus->print(lsb, DEC);
+            _bus->print(' ');
+            _bus->print(profile, DEC);
+
+            break;
+        }
+        default:
+            DIAG(F("[BusController] Unknown device type %u"), deviceType);
+            return; // Exit if the device type is unknown
+    }
+
+
+    _bus->print(' ');
+    _bus->print(msgId, DEC);
+    _bus->print('>');
+    _bus->flush();           // ensure all bytes leave UART
+
+    delayMicroseconds(30);   // allow last byte to exit transceiver
 
     // --- Back to RX ---
     digitalWrite(_dePin, LOW);
+    
+    busState= BUS_WAIT_REPLY;
+    _replyDeadline=millis()+WRITE_REPLY_TIMEOUT;
+    expectedReply=REPLY_ACK;
 }
 
 
@@ -296,7 +409,7 @@ RS485_Node* RS485BusController::getNodeByAddress(uint8_t addr)
 }
 
 
-void RS485BusController::logTimeout() {
+void RS485BusController::pollTimeout() {
         for (uint8_t i = 0; i < _currentNode->_count; i++)
     {
         RS485_RemoteDef& d = _currentNode->_dev[i];
@@ -308,7 +421,7 @@ DIAG(F("[RS485] Timeout waiting for reply from Node %u Device %s"),
              d.i2c.toString());
 
             d.online = false;
-            d.lastSeen=millis();
+          //  d.lastSeen=millis();
             break;
         }
     }
@@ -324,8 +437,6 @@ DIAG(F("[RS485] Timeout waiting for reply from Node %u Device %s"),
 }
 
 
-
-
 void RS485BusController::_loop(unsigned long now) {
 
     handleIncoming();   // always read bus first
@@ -337,55 +448,91 @@ void RS485BusController::_loop(unsigned long now) {
 
         _currentNode = _nodes[0];
     }
-    if (_waitingReply) {
-        if (replyReady()) {
-            routeReplyToNode();
-            _waitingReply = false;
+
+    switch (busState)
+    {
+
+    case BUS_IDLE:
+        if (writeHead != writeTail)
+        {
+            QueuedWrite &w = writeFifo[writeHead];
+            sendWriteFrame(w.node, w.i2c, w.mask,w.pin, w.profile, w.duration,w.deviceType, w.msgId);
         }
-        else if (millis() > _replyDeadline) {
-            logTimeout();
-            _waitingReply = false;
+        else if (pollDue())
+        {
+            IODevice *dev = _currentNode->nextDevice();
+            if (dev == nullptr)
+            {
+                _currentNode = nextNode();        // only when device list wraps
+                dev = _currentNode->nextDevice(); // once weve polled all the nodes and devices, we will wrap around and start again , but add the poll deelay to avoid flooding the bus with polls
+            }
+            _currentDevice = dev;
+            sendPoll(_currentNode, _currentDevice);
         }
-        return;
-    }
-    if (!_waitingReply && _pendingWrite.valid)
-{
-    sendWriteFrame(_pendingWrite);
-    _pendingWrite.valid = false;
-    _waitingReply = true;
-    _replyDeadline = millis() + WRITE_REPLY_TIMEOUT;
-    return;
+        break;
+
+    case BUS_WAIT_REPLY:
+        if (_replyReady)
+        {
+
+            if (parsedReply == expectedReply && expectedReply == REPLY_ACK)
+            {
+
+                // check msg ID matches?
+                bool ackMatched = handleAck(_replyMsgId, _replyStatus);
+                if (ackMatched)
+                {
+                    writeHead = (writeHead + 1) % FIFO_SIZE;
+                    routeReplyToNode();
+                    // pop FIFO, route poll, etc.
+                    busState = BUS_IDLE;
+                    parsedReply = REPLY_NONE;
+                    _replyMsgId = 0;
+                    _replyStatus = false;
+                    _replyReady = false;
+                }
+
+                else
+                {
+                    // wrong reply → ignore
+                    parsedReply = REPLY_NONE;
+                    _replyReady = false;
+                }
+            }
+            else if (parsedReply == expectedReply && parsedReply == REPLY_POLL)
+            {
+                routeReplyToNode();
+                busState = BUS_IDLE;
+                parsedReply = REPLY_NONE;
+                _replyReady = false;
+            }
+
+            return; // yield
+        }
+        // no reply yet → check timeout
+        if (millis() > _replyDeadline) {
+            handleTimeout(expectedReply);
+            expectedReply = REPLY_NONE;
+            busState = BUS_IDLE;
+        }
+        return; 
+
+        case BUS_TX:
+            //  if (txComplete()) {       // flush + DE low
+            //     busState = BUS_WAIT_REPLY;
+            //      replyDeadline = now + timeoutFor(expectedReply);
+            //   }
+            return; // yield
+        }
+    
 }
 
-    // Not waiting → send next poll
-if(millis()-lastPollTime < _intervalMs)
-{
-   // DIAG(F("[RS485] Waiting for next poll interval: %lu ms remaining"), _intervalMs - (millis() - lastPollTime));
-    return; // wait for the next poll interval
-}
-    IODevice* dev = _currentNode->nextDevice();
-
-if (dev == nullptr)
-{
-    _currentNode = nextNode();     // only when device list wraps
-    dev = _currentNode->nextDevice();
-    // once weve polled all the nodes and devices, we will wrap around and start again , but add the poll deelay to avoid flooding the bus with polls
-}
-
-_currentDevice = dev;
-
-    sendPoll(_currentNode,_currentDevice);
-    lastPollTime = millis();
-
-    _replyDeadline = millis() + REPLY_TIMEOUT;
-    _waitingReply  = true;
-
-}
 void RS485BusController::scanNode(RS485_Node* node)
 {
     uint8_t addr = node->getNodeAddress();
 
     sendDiscovery(addr);
+    expectedReply=REPLY_DISCOVERY;
 
     unsigned long deadline = millis() + 100;
 
@@ -406,7 +553,9 @@ uint8_t regCount = node->_count;
     {
         handleIncoming();
 
-        if (_replyReady && _replyType == REPLY_DISCOVERY)
+// lets do some log here see if that next statement can be true
+
+        if (_replyReady && parsedReply == expectedReply)
         {
             nodeReplied = true;
 
@@ -419,6 +568,7 @@ uint8_t regCount = node->_count;
             _replyReady = false;   // consume this reply
         }
     }
+    #if BUS_DIAG >=3
 DIAG(F("  Raw discoveredCount = %u"), discoveredCount);
 for (uint8_t k = 0; k < discoveredCount; k++) {
     DIAG(F("  discovered[%u] = 0x%s"), k, discovered[k].toString());
@@ -428,35 +578,41 @@ for (uint8_t i = 0; i < regCount; i++) {
     DIAG(F("    registered[%u].i2c = 0x%s"), 
          i, node->_dev[i].i2c.toString());
 }
-
-
-    DIAG(F("Node %u → Discovery Summary"), node->getNodeAddress());
+#endif
 
     if (!nodeReplied)
     {
         DIAG(F("  Status: NO REPLY"));
         return;
     }
+  #if BUS_DIAG >=3
 DIAG(F("  Status: REPLIED, %u devices discovered"), discoveredCount);
 DIAG(F("  Registered devices: %u"), regCount);
+ #endif
     // Check registered devices
     for (uint8_t i = 0; i < regCount; i++)
     {
         I2CAddress reg = node->_dev[i].i2c;
         bool found = false;
 
+ 
         for (uint8_t j = 0; j < discoveredCount; j++)
         {
+             #if BUS_DIAG >=3
             DIAG(F("  Checking discovered device %s against registered %s"),
                  discovered[j].toString(), reg.toString());
-
+             #endif
             if (discovered[j] == reg)
             {
+                #if BUS_DIAG >=3
                 DIAG(F("  Match found for registered device %s"), reg.toString());
+ #endif
                 found = true;
                 break;
             }
+          #if BUS_DIAG >=3
             DIAG(F("  No match for registered device %s against discovered %s"), reg.toString(), discovered[j].toString());
+           #endif
         }
 
         if (found){
@@ -493,65 +649,83 @@ DIAG(F("  Registered devices: %u"), regCount);
         DIAG(F("  ERROR: Too many devices detected (%u > %u)"),
              discoveredCount, MAX_RS485_DEVICES);
     }
+    busState=BUS_IDLE;
 }
 
-            // Only process replies for THIS node
-            /* if (_replyNode == addr && _replyType == REPLY_DISCOVERY)
-            {
-                I2CAddress i2c = _replyI2C;
-                bool alive = _replyAlive;   // <— NEW: read alive flag
+          
+bool RS485BusController::handleAck(uint16_t ackMsgId, bool ok)
+{
+     QueuedWrite &w = writeFifo[writeHead];
+     #if BUS_DIAG >=3
+  DIAG(F("[BusController] FIFO head msgId=%u, incoming ACK msgId=%u"),
+         w.msgId, ackMsgId);
+         #endif
+    if (w.msgId != ackMsgId) {
 
-                if (!alive)
-                {
-                    DIAG(F("[BusController] Node %u reports device at %s is NOT present"),
-                         addr, i2c.toString());
-                }
-                else
-                {
-                    bool found = false;
+        #if BUS_DIAG >=3
+        DIAG(F("[BusController] ACK for unknown msgId %u"), ackMsgId);
+#endif
 
-                    // Match reply to registered devices
-                    for (uint8_t i = 0; i < node->_count; i++)
-                    {
-                        if (node->_dev[i].i2c == i2c)
-                        {
-                            node->_dev[i].online = true;
-                            DIAG(F("[BusController] Node %u device %s online"),
-                                 addr, i2c.toString());
-                            found = true;
-                            break;
-                        }
-                    }
+        return false;   // DO NOT clear waitingReply
+    }
 
-                    if (!found)
-                    {
-                        DIAG(F("[BusController] Node %u reports UNREGISTERED device at I2C %s"),
-                             addr, i2c.toString());
-                    }
-                }
-            }
- */
-    //         _replyReady = false;
-    //     }
-    // }
+    // ACK matches → pop FIFO
+  
+    return true;
 
-    // Log offline registered devices
-    // if (node->_count == 0)
-    // {
-    //     DIAG(F("[BusController] Node %u has NO registered devices"), addr);
-    // }
-    // else
-    // {
-    //     for (uint8_t i = 0; i < node->_count; i++)
-    //     {
-    //         if (!node->_dev[i].online)
-    //         {
-    //             DIAG(F("[BusController] Node %u device at %s offline"),
-    //                  addr, node->_dev[i].i2c.toString());
-    //         }
-    //     }
-    // }
-//}
+}
+void RS485BusController::removeFromFifo()
+{
+writeHead=(writeHead+1)%FIFO_SIZE;
+}
+void RS485BusController::handleTimeout(ReplyType expected)
+{
+
+
+    if (expected == REPLY_ACK) {
+        retryWrite();
+    } else if (expected == REPLY_POLL) {
+        pollTimeout();
+    } else if (expected == REPLY_DISCOVERY) {
+// should never get here as handled in send discovery
+    }
+
+    expectedReply = REPLY_NONE;
+    parsedReply   = REPLY_NONE;
+
+}
+
+void RS485BusController::retryWrite()
+{
+    if (writeHead == writeTail)
+        return; // nothing queued
+
+    QueuedWrite &w = writeFifo[writeHead];
+
+    if (w.retries < MAX_RETRIES) {
+        w.retries++;
+
+        DIAG(F("[BusController] Timeout → retry %u for msgId %u"),
+             w.retries, w.msgId);
+  
+        // Reset reply state
+        _replyReady = false;
+        parsedReply = REPLY_NONE;
+        expectedReply = REPLY_ACK;
+
+        // Let dispatcher send the retry on next BUS_IDLE
+        busState = BUS_IDLE;
+ 
+        return;
+    }
+
+    // ⭐ Too many retries → drop it
+    DIAG(F("[RS485] Write failed permanently for msgId %u"), w.msgId);
+
+    removeFromFifo();
+    busState=BUS_IDLE;
+}
+
 void RS485BusController::sendDiscovery(uint8_t nodeAddr)
 {
      // Log the discovery request
@@ -560,20 +734,18 @@ void RS485BusController::sendDiscovery(uint8_t nodeAddr)
     _bus->print("<D ");
     _bus->print((int)nodeAddr);
     _bus->print(">");
-
     _bus->flush();
     digitalWrite(_dePin, LOW);
+    busState=BUS_WAIT_REPLY;
+    _replyDeadline=millis()+WRITE_REPLY_TIMEOUT;
 }
 void RS485BusController::startupScan()
 {
-
-
     for (uint8_t i = 0; i < _nodeCount; i++)
     {
         RS485_Node* node = _nodes[i];
         if (!node)
             continue;
-
         scanNode(node);
     }
 }
@@ -610,6 +782,7 @@ void RS485BusController::_display()
 if (_bus == &Serial)      DIAG(F("[RS485] Using Serial"));
 if (_bus == &Serial1)     DIAG(F("[RS485] Using Serial1"));
 if (_bus == &Serial2)     DIAG(F("[RS485] Using Serial2"));
-if (_bus == &Serial3)     DIAG(F("[RS485] Using Serial3"));
+
+//if (_bus == &Serial3)     DIAG(F("[RS485] Using Serial3"));
 #endif
 }

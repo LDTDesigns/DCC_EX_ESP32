@@ -210,5 +210,11 @@ new MotorDriver(NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),\
   new MotorDriver(UNUSED_PIN,UNUSED_PIN,UNUSED_PIN,UNUSED_PIN,UNUSED_PIN,2.99,1500,UNUSED_PIN), \
   new MotorDriver( 3, 12, UNUSED_PIN, 9, A0, 2.99, 1500, UNUSED_PIN), \
   new MotorDriver( 5,  4, UNUSED_PIN, 6, A5, 2.99, 1500, UNUSED_PIN)
-//
+// main first then prog track?
+// 3.3v @5A sense factor 1.515 for 12bit ADC (4096) on ESP32 and SAMD21
+// #define LDT_DESIGNS_298 F("LDT_DESIGNS_298_MOTOR_SHIELD"), \
+//  new MotorDriver(23,26,27,UNUSED_PIN,34, 1.515, 1500, UNUSED_PIN), \
+//  new MotorDriver(33,18,19,UNUSED_PIN,35, 1.515, 1500, UNUSED_PIN)
+
+
 #endif

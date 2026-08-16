@@ -24,11 +24,9 @@ public:
 
 protected:
     int _read(VPIN vpin) override;
-    void _write(VPIN vpin, int value) override{
-        // no function here as input only
-    };
+    void _write(VPIN vpin, int value) override;
     void _display() override;
        void _loop(unsigned long now) ;
-
+bool _inverted = false;  // default to non-inverted logic
 void _ProcessMask(uint16_t mask) ;
 };

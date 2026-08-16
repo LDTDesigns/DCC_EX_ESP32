@@ -57,10 +57,22 @@ The configuration file for DCC-EX Command Station
 //   |
 //   +-----------------------v
 //
+// main first then prog track?
+// 3.3v @5A sense factor 1.515 for 12bit ADC (4096) on ESP32 and SAMD21
+#ifndef LDT_DESIGNS_298
+//#define LDT_DESIGNS_298 F("LDT_DESIGNS_298_MOTOR_SHIELD"), \
+// new MotorDriver(23,26,27,UNUSED_PIN,34, 1.515, 4000, UNUSED_PIN),\
+//new MotorDriver(33,18,19,UNUSED_PIN,35, 1.515, 4000, UNUSED_PIN)
+#define LDT_DESIGNS_298 F("LDT_DESIGNS_298_MOTOR_SHIELD"), \
+ new MotorDriver(23,26,27,UNUSED_PIN,UNUSED_PIN, 1.515, 4000, UNUSED_PIN),\
+new MotorDriver(33,18,19,UNUSED_PIN,UNUSED_PIN, 1.515, 4000, UNUSED_PIN)
+#endif
+// new MotorDriver(23,26,27,UNUSED_PIN,34, 1.515, 4000, UNUSED_PIN)
+
 #if !nanoLite
 //#define MOTOR_SHIELD_TYPE STANDARD_MOTOR_SHIELD
-#define MOTOR_SHIELD_TYPE DC_ONLY_MOTOR_SHIELD
-
+//#define MOTOR_SHIELD_TYPE DC_ONLY_MOTOR_SHIELD
+#define MOTOR_SHIELD_TYPE LDT_DESIGNS_298
 #else
 #define MOTOR_SHIELD_TYPE NANOEVERY_EXAMPLE
 #endif
@@ -77,7 +89,7 @@ The configuration file for DCC-EX Command Station
 // PS has a higher rating than your motor shield you do not need this.
 // You can use this as well if you are cautious and your trains do not
 // need full current.
- #define MAX_CURRENT 2250
+ #define MAX_CURRENT 4000
 //
 /////////////////////////////////////////////////////////////////////////////////////
 //
@@ -90,7 +102,7 @@ The configuration file for DCC-EX Command Station
 // NOTE: Only supported on Arduino Mega
 // Set to false if you not even want it on the Arduino Mega
 //
-#define ENABLE_WIFI false
+#define ENABLE_WIFI true
 #define DISABLE_WIFI_AUTODETECT
 #define WIFI_SERIAL_PORT 1  // prevent clashes with rs485Bus on Serial3
 /////////////////////////////////////////////////////////////////////////////////////
@@ -115,13 +127,16 @@ The configuration file for DCC-EX Command Station
 // The AP mode password must be at least 8 characters long.
 //
 // Your SSID may not contain ``"'' (double quote, ASCII 0x22).
-#define WIFI_SSID "BTHub6-8QM9"
-//
+#define WIFI_SSID "TP-Link_44D1_EXT"
+//#define WIFI_SSID "TP-Link_C378"
+//#define WIFI_SSID ""
+//#define WIFI_PASSWORD "12345678"
 // WIFI_PASSWORD is the network password for your home network or if
 // you want to change the password from default AP mode password
 // to the AP password you want. 
 // Your password may not contain ``"'' (double quote, ASCII 0x22).
-#define WIFI_PASSWORD "wgr7iF4yJEaW"
+#define WIFI_PASSWORD "62974769"
+//#define WIFI_PASSWORD "78934245"
 //
 // WIFI_HOSTNAME: You probably don't need to change this
 #define WIFI_HOSTNAME "dccex"
@@ -249,7 +264,7 @@ The configuration file for DCC-EX Command Station
 // To monitor a throttle on one or more serial ports, uncomment the defines below.
 // NOTE: do not define here the WiFi shield serial port or your wifi will not work.
 //
-#define SERIAL1_COMMANDS
+//#define SERIAL1_COMMANDS
 //#define SERIAL2_COMMANDS
 //#define SERIAL3_COMMANDS
 //#define SERIAL4_COMMANDS

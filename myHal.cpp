@@ -29,11 +29,13 @@
 #include "RS485_BusController.h"
 #include "IO_RS485_Node.h" // custom rs485 node handler
 #include"RS485_IODevice.h"
+#include"RS485_IOTurntable.h"
 //#include "RemoteDevice.h"  // custom remote device handler
 #include"IO_LocalCoilDriver.h"
 #include"IO_RemoteCoilDriver.h"
 #if !nanoLite
 #include "IO_EXTurntable.h"   // Turntable-EX turntable controller
+#include "IO_EXTurntable_Custom.h"   // Custom Turntable-EX turntable controller
 #endif
 //#include "IO_EXFastClock.h"  // FastClock driver
 //#include "IO_PCA9555.h"     // 16-bit I/O expander (NXP & Texas Instruments).
@@ -51,7 +53,7 @@ void halSetup() {
   PCF8574::create(240, 8, 0x39);
 
  //LocalCoilDriver::create(0x38,200,8,3000,75);
-
+EXTurntable_Custom::create(600,1,0x60);
  
 // ========================================================================
     // SECTION 1: NETWORK HARDWARE BUS INITIALIZATION
@@ -62,12 +64,15 @@ void halSetup() {
     // Select which of the Mega's 4 independent hardware serial ports to use.
     // (Serial2 uses Pin 16 for TX and Pin 17 for RX. This completely leaves 
     // Serial1 free to handle Wi-Fi throttles and JMRI traffic safely!)
-    HardwareSerial& rs485Bus = Serial3; 
-#define RS485_TX_ENABLE_PIN   2
+    HardwareSerial& rs485Bus = Serial2; 
     // Define the Digital Output Pin on the Mega that is physically wired to 
     // the MAX485's RE/DE shorted jumper pins to control transmit/receive direction.
-    const uint8_t max485TogglePin = 2; 
+#ifdef ARDUINO_ARCH_ESP32
 
+    const uint8_t max485TogglePin = 25;  // ESP32 Pin 25 is wired to MAX485 RE/DE shorted jumper pins
+    #else
+const uint8_t max485TogglePin = 22;  // Mega Pin 22 is wired to MAX485 RE/DE shorted jumper pins
+#endif
     // Spin up the physical UART hardware bus lines at 115,200 bits per second.
     // This high speed ensures a standard text packet clears the line in < 1ms.
   //  rs485Bus.begin(19200); 
@@ -77,9 +82,16 @@ RS485BusController* Bus1 =RS485BusController::create(rs485Bus,max485TogglePin,50
  // 1. Declare the remote network hub (Node ID = 1)
  RS485_Node* node1  =RS485_Node::create(1,Bus1);
  RS485_Node* node2 =RS485_Node::create(2,Bus1);
+ RS485_Node* node3 =RS485_Node::create(3,Bus1);
 //RemoteCoilDriver::create(node1,0x38,200,8,3000,75);
 RS485_IODevice::create(node1,0x20,232,8);
-RemoteCoilDriver::create(node1,0x20,200,8,3000,75);
+RemoteCoilDriver::create(node1,0x38,200,8,3000,75);
+RS485_IODevice::create(node2,0x38,250,8);
+RemoteCoilDriver::create(node2,0x3f,210,8,3000,75);
+RS485_IODevice::create(node3,0x27,260,8);
+RemoteCoilDriver::create(node3,0x20,220,8,3000,75);
+RS485_IOTurntable::create(node1,0x3c, 601, 1);
+
 Bus1->init();
 }
 

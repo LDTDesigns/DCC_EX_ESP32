@@ -404,6 +404,8 @@ public:
     LED_Off = 7,          // Turn LED off
     Acc_On = 8,           // Turn accessory pin on
     Acc_Off = 9,          // Turn accessory pin off
+    Turn_Relative = 10,    // Rotate turntable relative to current position
+    Turn_Relative_PInvert = 11, // Rotate turntable relative to current position  
   };
 
 private:
@@ -413,6 +415,7 @@ private:
   int _read(VPIN vpin) override;
   void _writeAnalogue(VPIN vpin, int value, uint8_t activity, uint16_t duration) override;
   void _display() override;
+  protected:
   uint8_t _stepperStatus;
 };
 

@@ -1,5 +1,5 @@
 #include "IO_BaseCoilDriver.h"
-
+#define REMOTE_COIL_DIAG 1
 class RemoteCoilDriver : public BaseCoilDriver {
 public:
 
@@ -9,7 +9,7 @@ public:
     {
 
         _owner = owner;
-        DIAG(F("[RemoteCoilDriver] CONSTRUCTOR CALLED"));
+      //  DIAG(F("[RemoteCoilDriver] CONSTRUCTOR CALLED"));
         addDevice(this);
          owner->addDevice(this,i2c,firstVpin,nPins,"RemoteCoilDriver",IODevice::CONFIGURE_OUTPUT);// register in node
        // _begin();
@@ -22,8 +22,9 @@ static void create(RS485_Node* node, I2CAddress i2c,VPIN startPin,uint8_t nPins,
 
     void outputToDevice( uint8_t value) override {
 //this is the call that should pass the value to the node bus to send to the remote device
+#if REMOTE_COIL_DIAG >=3
 DIAG(F("[RemoteCoilDriver] outputToDevice value=%d"), value);
-
+#endif
 
     //  uint8_t mask = value ? (1 << pin) : 0x00;
       _owner->sendMask(_i2c, value); // send mask to node
@@ -33,9 +34,10 @@ DIAG(F("[RemoteCoilDriver] outputToDevice value=%d"), value);
     //   I2CManager.begin();
 // register with node
 // this has been called by iodevice 
+#if REMOTE_COIL_DIAG >=3
 DIAG(F("[RemoteCoilDriver::_begin] exists() returned: %S"),
     I2CManager.exists(_i2c) ? F("YES") : F("NO"));
-     
+     #endif
 // 
 uint16_t initialMask = 0x0000;
 

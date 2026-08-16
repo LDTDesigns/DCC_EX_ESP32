@@ -9,14 +9,17 @@ RS485_IODevice::RS485_IODevice(RS485_Node*owner,I2CAddress i2c, VPIN firstVpin, 
 {
     _states = (uint8_t *)calloc(1, (_nPins + 7) / 8);
     addDevice(this); // register in exrail
-    owner->addDevice(this,i2c,firstVpin,nPins,"IOdevice");// register in node
+    owner->addDevice(this,i2c,firstVpin,nPins,"IOdevice",IODevice::CONFIGURE_INPUT);// register in node
+    _inverted=true;  // default to inverted logic for RS485 devices
     _display();
 }
 // this might be called by iodevice so may be wrong logic here possibly just pass back the local array until the poll has been completed
 
  void RS485_IODevice::create(RS485_Node* owner, I2CAddress i2c, VPIN firstVpin, int nPins)
 {
-if (checkNoOverlap(firstVpin,nPins))  new RS485_IODevice(owner,i2c,firstVpin,nPins);
+if (checkNoOverlap(firstVpin,nPins)) {
+     new RS485_IODevice(owner,i2c,firstVpin,nPins);
+}
 
 }
 
@@ -32,6 +35,34 @@ int RS485_IODevice::_read(VPIN vpin)
     return _value[pin];
 }
 
+void RS485_IODevice::_write(VPIN vpin, int value)
+{
+  //this is the call that should pass the value to the node bus to send to the remote device
+ #if RS485_DEBUG >=2
+DIAG(F("[RS485_IODevice] outputToDevice vpin=%u value=%d firstVpin=%u npins=%u"), vpin, value, _firstVpin, _nPins);
+#endif
+    // 1. Update local pin state
+    uint8_t pin = vpin - _firstVpin;
+    _value[pin] = value ? 1 : 0;
+
+
+
+    // 2. Build mask from all 8 pins
+    uint8_t mask = 0;
+    for (int i = 0; i < _nPins; i++) {
+        if (_value[i]) {
+            mask |= (1 << i);
+        }
+    }
+
+    // 3. Apply inversion if needed
+    if (_inverted) {
+      mask = (~mask) & 0xFF;
+    }
+      _owner->sendMask(_i2c, (int)mask); // send mask to node
+    
+}
+
 void RS485_IODevice::_display()
 {
    
@@ -43,18 +74,18 @@ void RS485_IODevice::_display()
 void RS485_IODevice::_OutputToDevice(VPIN vpin, int value)
 {
 // this is called by iodevice so should be writing to the hardware not exrail
-#if RS485_DEBUG >= 1
+#if RS485_DEBUG >= 2
     DIAG(F("[RS485_IODevice::_write] vpin=%u pin=%d value=%d first=%u"), (unsigned)vpin, vpin, value, (unsigned)_firstVpin);
 #endif
 
-    if (_owner)
-        _owner->sendWrite(_i2c, vpin, value);
+    if (_owner){}
+      //  _owner->sendWrite(_i2c, vpin, value); this was removed as the sendWrite is not implemented in the RS485_Node class, so we should use sendMask instead to send the state of all pins at once.
 }
 
 void RS485_IODevice::updateInput(VPIN vpin, int value)
 {
 
-    int pin = vpin - _firstVpin;
+    uint8_t pin = vpin - _firstVpin;
     _value[pin] = value; // Update local array state
 
 #if RS485_DEBUG >= 3
@@ -111,7 +142,7 @@ mask = (~mask) & 0xFF;
 #endif
         if (newValue != oldValue)
         {
-#if RS485_DEBUG >= 1
+#if RS485_DEBUG >= 2
             DIAG(F("  CHANGE pin=%u vpin=%u %d→%d"),
                  i, _firstVpin + i, oldValue, newValue);
 #endif

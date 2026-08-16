@@ -101,8 +101,8 @@ IODevice* RS485_Node::nextDevice()
     for (uint8_t i = 0; i < _count; i++)
     {
         RS485_RemoteDef& d = _dev[_nextDeviceIndex];
-        _nextDeviceIndex = (_nextDeviceIndex + 1) % _count;
-
+        _nextDeviceIndex ++;
+    
         if (d.dev == nullptr)
             continue;
 
@@ -117,12 +117,19 @@ IODevice* RS485_Node::nextDevice()
             return d.dev;
     }
 
+    if (_nextDeviceIndex >= (_count))
+        _nextDeviceIndex = 0;
+
     return nullptr;
 }
 
 void RS485_Node::sendMask(I2CAddress i2c, uint8_t mask) {
     if (_busController)
         _busController->queueWrite(_nodeAddress, i2c, mask);
+}
+void RS485_Node::sendAnalogueMask(I2CAddress i2c, uint8_t pin, int value, uint8_t profile, uint16_t duration, uint8_t deviceType) {
+    if (_busController)
+        _busController->queueWrite(_nodeAddress, i2c, value,pin,profile,duration,deviceType);
 }
 
 // ======================================================================

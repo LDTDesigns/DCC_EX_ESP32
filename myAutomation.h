@@ -34,7 +34,7 @@ MOVETT(600, 114, Turn)
 // START(33)
 // START(34)
 // START(35)
-// START(36)
+ START(305)
 DONE
 
 // For Conductor level users who wish to just use EX-Turntable, you don't need to understand this
@@ -44,7 +44,20 @@ DONE
 // Definition of the EX_TURNTABLE macro to correctly create the ROUTEs required for each position.
 // This includes RESERVE()/FREE() to protect any automation activities.
 //
+ALIAS(TTPOS,600)
+ALIAS(TTPOS1,601)
+
 #define EX_TURNTABLE(route_id, reserve_id, vpin, steps, activity, desc) \
+  ROUTE(route_id, desc) \
+    RESERVE(reserve_id) \
+    MOVETT(vpin,steps,LED_Fast) \
+    MOVETT(vpin, steps, activity) \
+    WAITFOR(vpin) \
+    FREE(reserve_id) \
+    MOVETT(vpin,steps,LED_Off) \
+    DONE
+
+#define EX_TURNTABLE_CUSTOM(route_id, reserve_id, vpin, steps, activity, desc) \
   ROUTE(route_id, desc) \
     RESERVE(reserve_id) \
     MOVETT(vpin,steps,LED_Fast) \
@@ -66,18 +79,28 @@ DONE
 // activity = The activity performed for this ROUTE (Note do not enclose in quotes "")
 // desc = Description that will appear in throttles (Must use quotes "")
 //
-EX_TURNTABLE(TTRoute1, Turntable, 600, 114, Turn, "TurnTable Position 1")
-EX_TURNTABLE(TTRoute2, Turntable, 600, 227, Turn, "Turntable Position 2")
-EX_TURNTABLE(TTRoute3, Turntable, 600, 341, Turn, "TurnTable Position 3")
-EX_TURNTABLE(TTRoute4, Turntable, 600, 2159, Turn, "Turntable Position 4")
-EX_TURNTABLE(TTRoute5, Turntable, 600, 2273, Turn, "Turntable Position 5")
-EX_TURNTABLE(TTRoute6, Turntable, 600, 2386, Turn, "Turntable Position 6")
+EX_TURNTABLE(TTRoute1, Turntable, 600, 114, Turn, "TT Pos 1")
+EX_TURNTABLE(TTRoute2, Turntable, 600, 227, Turn, "TT Pos 2")
+EX_TURNTABLE(TTRoute3, Turntable, 600, 341, Turn, "TT Pos 3")
+EX_TURNTABLE(TTRoute4, Turntable, 600, 2159, Turn, "TT Pos 4")
+EX_TURNTABLE(TTRoute5, Turntable, 600, 2273, Turn, "TT Pos 5")
+EX_TURNTABLE(TTRoute6, Turntable, 600, 2386, Turn, "TT Pos 6")
 EX_TURNTABLE(TTRoute7, Turntable, 600, 0, Home, "Home Turntable")
+EX_TURNTABLE(TTRoute8, Turntable, 600, 5, Turn_Relative, "TT +5")
+EX_TURNTABLE(TTRoute9, Turntable, 600, -5, Turn_Relative, "TT -5")
+EX_TURNTABLE(TTRoute13, Turntable, 600, 114, Acc_On, "acc on")
+EX_TURNTABLE(TTRoute14, Turntable, 600, 114, Acc_Off, "acc off")
+EX_TURNTABLE(TTRoute15, Turntable, 600, 114, LED_On, "LED on")
+EX_TURNTABLE(TTRoute16, Turntable, 600, 114, LED_Off, "LED off")
+
+EX_TURNTABLE_CUSTOM(TTRoute10, Turntable1, 601, 0, Home, "Home TT 1")
+EX_TURNTABLE_CUSTOM(TTRoute11, Turntable1, 601, 5, Turn, "TT1 +5")
+EX_TURNTABLE_CUSTOM(TTRoute12, Turntable1, 601, -5, Turn, "TT1 -5")
 
 // Pre-defined aliases to ensure unique IDs are used.
 // Turntable reserve ID, valid is 0 - 255
-ALIAS(Turntable, 255)
-
+ALIAS(Turntable)
+ALIAS(Turntable1)
 // Turntable ROUTE ID reservations, using <? TTRouteX> for uniqueness:
 ALIAS(TTRoute1)
 ALIAS(TTRoute2)
@@ -115,6 +138,59 @@ ALIAS(TTRoute30)
 //**********************************************
 
 
+ALIAS(PRIMARY_RED_LIGHT, 250)
+ALIAS(PRIMARY_GREEN_LIGHT, 252)
+ALIAS(PRIMARY_AMBER_LIGHT, 251)
+ALIAS(SECONDARY_RED_LIGHT, 253)
+ALIAS(SECONDARY_GREEN_LIGHT, 255)
+ALIAS(SECONDARY_AMBER_LIGHT, 254)
+
+ROUTE(300,"STOP_PRIMARY_RED_LIGHT")
+RESET(PRIMARY_GREEN_LIGHT)
+SET(PRIMARY_AMBER_LIGHT)
+DELAY(3000)
+RESET(PRIMARY_AMBER_LIGHT)
+    SET(PRIMARY_RED_LIGHT)
+    DELAY(1000)
+    SET(SECONDARY_RED_LIGHT)
+    SET(SECONDARY_AMBER_LIGHT)
+    DELAY(1000)
+    RESET(SECONDARY_RED_LIGHT)
+    RESET(SECONDARY_AMBER_LIGHT)
+    SET(SECONDARY_GREEN_LIGHT)
+    PRINT("Red Light On")
+    DONE
+
+
+
+ ROUTE(302,"GO_PRIMARY_GREEN_LIGHT")
+RESET(SECONDARY_GREEN_LIGHT)
+SET(SECONDARY_AMBER_LIGHT)
+DELAY(1000)
+RESET(SECONDARY_AMBER_LIGHT)
+    SET(SECONDARY_RED_LIGHT)
+    DELAY(2000)
+SET(PRIMARY_RED_LIGHT)
+SET(PRIMARY_AMBER_LIGHT)
+DELAY(1000)
+    RESET(PRIMARY_RED_LIGHT)
+    RESET(PRIMARY_AMBER_LIGHT)
+    SET(PRIMARY_GREEN_LIGHT)
+    PRINT("Green Light On")
+    DONE
+
+
+
+
+SEQUENCE(305)
+AFTER(260)
+PRINT("Button 1 Pressed")  
+START(300)
+AFTER(261)
+PRINT("Button 2 Pressed")
+START(302)
+FOLLOW(305)
+DONE
 
 
 

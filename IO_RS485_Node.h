@@ -36,13 +36,16 @@ public:
     uint8_t getNodeAddress() const { return _nodeAddress; }
  uint16_t  getCurrentMask(IODevice* dev);
     // Called by proxy IODevice
-    int  read(VPIN vpin);
-    void write(VPIN vpin, int value);
+  //  int  read(VPIN vpin);//not used in this implementation, reading is handled by the bus controller
+    //void write(VPIN vpin, int value);//not used in this implementation, writing is handled by the bus controller
 
     // Called from loop()
-    void poll(unsigned long now);
+   // void poll(unsigned long now);//not used in this implementation, polling is handled by the bus controller
 void sendMask(I2CAddress i2c, uint8_t mask);
-  void sendWrite(I2CAddress i2c, uint8_t pin, uint8_t value);
+void sendAnalogueMask(I2CAddress i2c, uint8_t pin, int value, uint8_t profile=0, uint16_t duration=0, uint8_t deviceType=0);
+  
+    // Called by RS485BusController
+ // void sendWrite(I2CAddress i2c, uint8_t pin, uint8_t value);/this is never implemented in the RS485_Node class, so we should remove it or implement it properly
   void addDevice(IODevice* dev, I2CAddress i2c, VPIN start, uint8_t pins, const char* name, IODevice::ConfigTypeEnum type = IODevice::CONFIGURE_INPUT);
   IODevice* nextDevice();
 
