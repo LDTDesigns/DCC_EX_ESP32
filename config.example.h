@@ -59,14 +59,14 @@ The configuration file for DCC-EX Command Station
 //
 // main first then prog track?
 // 3.3v @5A sense factor 1.515 for 12bit ADC (4096) on ESP32 and SAMD21
-#ifndef LDT_DESIGNS_298
-//#define LDT_DESIGNS_298 F("LDT_DESIGNS_298_MOTOR_SHIELD"), \
-// new MotorDriver(23,26,27,UNUSED_PIN,34, 1.515, 4000, UNUSED_PIN),\
-//new MotorDriver(33,18,19,UNUSED_PIN,35, 1.515, 4000, UNUSED_PIN)
-#define LDT_DESIGNS_298 F("LDT_DESIGNS_298_MOTOR_SHIELD"), \
- new MotorDriver(23,26,27,UNUSED_PIN,UNUSED_PIN, 1.515, 4000, UNUSED_PIN),\
-new MotorDriver(33,18,19,UNUSED_PIN,UNUSED_PIN, 1.515, 4000, UNUSED_PIN)
-#endif
+// #ifndef LDT_DESIGNS_298
+// //#define LDT_DESIGNS_298 F("LDT_DESIGNS_298_MOTOR_SHIELD"), \
+// // new MotorDriver(23,26,27,UNUSED_PIN,34, 1.515, 4000, UNUSED_PIN),\
+// //new MotorDriver(33,18,19,UNUSED_PIN,35, 1.515, 4000, UNUSED_PIN)
+// #define LDT_DESIGNS_298 F("LDT_DESIGNS_298_MOTOR_SHIELD"), \
+//  new MotorDriver(23,26,27,UNUSED_PIN,UNUSED_PIN, 1.515, 4000, UNUSED_PIN),\
+// new MotorDriver(33,18,19,UNUSED_PIN,UNUSED_PIN, 1.515, 4000, UNUSED_PIN)
+// #endif
 // new MotorDriver(23,26,27,UNUSED_PIN,34, 1.515, 4000, UNUSED_PIN)
 
 #if !nanoLite

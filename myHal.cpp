@@ -90,7 +90,7 @@ RS485_IODevice::create(node2,0x38,250,8);
 RemoteCoilDriver::create(node2,0x3f,210,8,3000,75);
 RS485_IODevice::create(node3,0x27,260,8);
 RemoteCoilDriver::create(node3,0x20,220,8,3000,75);
-RS485_IOTurntable::create(node1,0x3c, 601, 1);
+//RS485_IOTurntable::create(node1,0x3c, 601, 1);
 
 Bus1->init();
 }

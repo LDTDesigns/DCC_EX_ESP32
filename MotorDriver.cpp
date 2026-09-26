@@ -148,8 +148,8 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
     // trip value so that it is tiggered when the ADC reports it's
     // maximum value instead.
 
-    //    DIAG(F("Changing short detection value from %d to %d mA"),
-    // raw2mA(rawCurrentTripValue), raw2mA(ADCee::ADCmax()-senseOffset));
+       DIAG(F("Changing short detection value from %d to %d mA"),
+    raw2mA(rawCurrentTripValue), raw2mA(ADCee::ADCmax()-senseOffset));
     rawCurrentTripValue=ADCee::ADCmax()-senseOffset;
   }
 
@@ -159,8 +159,8 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
     DIAG(F("Pin %d Max %dmA (%d)"), currentPin, raw2mA(rawCurrentTripValue), rawCurrentTripValue);
 
     // self testing diagnostic for the non-float converters... may be removed when happy
-    //  DIAG(F("senseFactorInternal=%d raw2mA(1000)=%d mA2Raw(1000)=%d"),
-    //   senseFactorInternal, raw2mA(1000),mA2raw(1000));
+     DIAG(F("senseFactorInternal=%d raw2mA(1000)=%d mA2Raw(1000)=%d"),
+       senseFactorInternal, raw2mA(1000),mA2raw(1000));
   }
 
   progTripValue = mA2raw(TRIP_CURRENT_PROG); 
@@ -232,6 +232,9 @@ int MotorDriver::getCurrentRaw(bool fromISR) {
   int current;
   current = ADCee::read(currentPin, fromISR);
   // here one can diag raw value
+  //if (current > 0) {
+    // DIAG(F("%c: ADCee::read returned %d"), trackLetter, current);
+  // }
   // if (fromISR == false) DIAG(F("%c: %d"), trackLetter, current);
   current = current-senseOffset;     // adjust with offset
   if (current<0) current=0-current;
@@ -431,11 +434,11 @@ void MotorDriver::throttleInrush(bool on) {
 #endif
 }
 unsigned int MotorDriver::raw2mA( int raw) {
-  //DIAG(F("%d = %d * %d / %d"), (int32_t)raw * senseFactorInternal / senseScale, raw, senseFactorInternal, senseScale);
+  DIAG(F("RAW2mA %d = %d * %d / %d"), (int32_t)raw * senseFactorInternal / senseScale, raw, senseFactorInternal, senseScale);
   return (int32_t)raw * senseFactorInternal / senseScale;
 }
 unsigned int MotorDriver::mA2raw( unsigned int mA) {
-  //DIAG(F("%d = %d * %d / %d"), (int32_t)mA * senseScale / senseFactorInternal, mA, senseScale, senseFactorInternal);
+  DIAG(F("mA2raw %d = %d * %d / %d"), (int32_t)mA * senseScale / senseFactorInternal, mA, senseScale, senseFactorInternal);
   return (int32_t)mA * senseScale / senseFactorInternal;
 }
 

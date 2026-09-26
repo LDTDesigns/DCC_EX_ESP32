@@ -5,11 +5,11 @@ Release/*
 .clang_complete
 .gcc-flags.json
 .pio/
-.vscode/
-//config.h
+.vscode
+.config.h
 mySetup.cpp
 //myHal.cpp
 myFilter.cpp
 //my*.h
 !my*.example.h
-compile_commands.json
+compile_commands.jsongit push

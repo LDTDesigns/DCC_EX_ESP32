@@ -64,15 +64,24 @@ The configuration file for DCC-EX Command Station
 // new MotorDriver(23,26,27,UNUSED_PIN,34, 1.515, 4000, UNUSED_PIN),\
 //new MotorDriver(33,18,19,UNUSED_PIN,35, 1.515, 4000, UNUSED_PIN)
 #define LDT_DESIGNS_298 F("LDT_DESIGNS_298_MOTOR_SHIELD"), \
- new MotorDriver(23,26,27,UNUSED_PIN,UNUSED_PIN, 1.515, 4000, UNUSED_PIN),\
-new MotorDriver(33,18,19,UNUSED_PIN,UNUSED_PIN, 1.515, 4000, UNUSED_PIN)
+ new MotorDriver(23,26,27,UNUSED_PIN,34, 0.76, 1850, UNUSED_PIN),\
+new MotorDriver(33,18,19,UNUSED_PIN,35, 0.76, 1850, UNUSED_PIN)
 #endif
 // new MotorDriver(23,26,27,UNUSED_PIN,34, 1.515, 4000, UNUSED_PIN)
+//#ifndef LDT_DESIGNS_DRV8873
+//#define LDT_DESIGNS_DRV8873 F("LDT_DESIGNS_DRV8873_MOTOR_SHIELD"), \
+ //new MotorDriver(23,26,UNUSED_PIN,UNUSED_PIN,34, 4.93, 3500, 14),\
+//new MotorDriver(33,18,UNUSED_PIN,UNUSED_PIN,35, 4.93, 3500, 4)
+//#endif
+
+// 8.93
 
 #if !nanoLite
 //#define MOTOR_SHIELD_TYPE STANDARD_MOTOR_SHIELD
 //#define MOTOR_SHIELD_TYPE DC_ONLY_MOTOR_SHIELD
+
 #define MOTOR_SHIELD_TYPE LDT_DESIGNS_298
+//#define MOTOR_SHIELD_TYPE LDT_DESIGNS_DRV8873
 #else
 #define MOTOR_SHIELD_TYPE NANOEVERY_EXAMPLE
 #endif
@@ -89,7 +98,7 @@ new MotorDriver(33,18,19,UNUSED_PIN,UNUSED_PIN, 1.515, 4000, UNUSED_PIN)
 // PS has a higher rating than your motor shield you do not need this.
 // You can use this as well if you are cautious and your trains do not
 // need full current.
- #define MAX_CURRENT 4000
+ #define MAX_CURRENT 2550
 //
 /////////////////////////////////////////////////////////////////////////////////////
 //
@@ -127,7 +136,8 @@ new MotorDriver(33,18,19,UNUSED_PIN,UNUSED_PIN, 1.515, 4000, UNUSED_PIN)
 // The AP mode password must be at least 8 characters long.
 //
 // Your SSID may not contain ``"'' (double quote, ASCII 0x22).
-#define WIFI_SSID "TP-Link_44D1_EXT"
+//#define WIFI_SSID "TP-Link_44D1_EXT"
+#define WIFI_SSID "BT-MGCT75"
 //#define WIFI_SSID "TP-Link_C378"
 //#define WIFI_SSID ""
 //#define WIFI_PASSWORD "12345678"
@@ -135,8 +145,9 @@ new MotorDriver(33,18,19,UNUSED_PIN,UNUSED_PIN, 1.515, 4000, UNUSED_PIN)
 // you want to change the password from default AP mode password
 // to the AP password you want. 
 // Your password may not contain ``"'' (double quote, ASCII 0x22).
-#define WIFI_PASSWORD "62974769"
-//#define WIFI_PASSWORD "78934245"
+//#define WIFI_PASSWORD "62974769"
+//#define WIFI_PASSWORD "78934245" 
+#define WIFI_PASSWORD "teKYQdC3xpqEVP"
 //
 // WIFI_HOSTNAME: You probably don't need to change this
 #define WIFI_HOSTNAME "dccex"
