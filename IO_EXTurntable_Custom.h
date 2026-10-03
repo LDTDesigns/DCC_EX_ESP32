@@ -1,4 +1,5 @@
-#include "IO_EXTurntable.h"
+//#include "IO_EXTurntable.cpp"
+#include "IODevice.h"
 //custom EXTurntable class to handle relative turntable movement
 
 #define TT_CUSTOM_DIAG 2

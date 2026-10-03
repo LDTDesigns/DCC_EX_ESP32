@@ -1,5 +1,6 @@
 
-#include "IO_EXTurntable.h"
+//#include "IO_EXTurntable.cpp"
+#include "IODevice.h"
 #include"RS485_BusController.h"
 class RS485_Node;
 
@@ -65,15 +66,13 @@ void _writeAnalogue(VPIN vpin, int value, uint8_t activity, uint16_t duration) o
         // This is a placeholder for the actual implementation
         DIAG(F("RS485_IOTurntable: Sending command to turntable at I2C address %s with activity %d and duration %d on node %u"), _I2CAddress.toString(), activity, duration, _owner->getNodeAddress());
         // Here you would implement the actual RS485 communication to send the command to the turntable.
-        if(activity==Turn_Relative){
+        if(activity>=10 && activity<=11)
+        {
 value=_lastTargetPosition+value;
-activity=Turn;
+activity=(activity==10)?0:1; // convert to Turn or Turn_PInvert
         }
-else if (activity==Turn_Relative_PInvert)
-{
-value=_lastTargetPosition+value;
-    activity=Turn_PInvert;
-        }
+
+        
     if (value<0)
     {
         value=0;

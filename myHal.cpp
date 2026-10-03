@@ -20,7 +20,7 @@
 // Include devices you need.
 #include "IODevice.h"
 
-
+#include "IO_PCF8574.h"  // 8-bit I/O expander (NXP & Texas Instruments)
 //#include "IO_HALDisplay.h"  // Auxiliary display devices (LCD/OLED)
 //#include "IO_HCSR04.h"    // Ultrasonic range sensor
 //#include "IO_VL53L0X.h"   // Laser time-of-flight sensor
@@ -34,7 +34,7 @@
 #include"IO_LocalCoilDriver.h"
 #include"IO_RemoteCoilDriver.h"
 #if !nanoLite
-#include "IO_EXTurntable.h"   // Turntable-EX turntable controller
+//#include "IO_EXTurntable.cpp"   // Turntable-EX turntable controller
 #include "IO_EXTurntable_Custom.h"   // Custom Turntable-EX turntable controller
 #endif
 //#include "IO_EXFastClock.h"  // FastClock driver
@@ -47,7 +47,6 @@
 //==========================================================================
 
 void halSetup() {
-
 
 
   PCF8574::create(240, 8, 0x39);

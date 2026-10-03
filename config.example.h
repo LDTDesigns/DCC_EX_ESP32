@@ -56,7 +56,7 @@ The configuration file for DCC-EX Command Station
 //   |
 //   +-----------------------v
 //
-#define MOTOR_SHIELD_TYPE STANDARD_MOTOR_SHIELD
+//#define MOTOR_SHIELD_TYPE STANDARD_MOTOR_SHIELD
 //
 /////////////////////////////////////////////////////////////////////////////////////
 //

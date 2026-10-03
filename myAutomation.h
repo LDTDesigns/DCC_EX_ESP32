@@ -27,14 +27,14 @@
  * be effective.
  *************************************************************************************************/
 //#include "MyLaunchAutomation.h"
-
+#include "myTrackStatus.h"
 AUTOSTART
 MOVETT(600, 114, Turn)
 // START(1)
 // START(33)
 // START(34)
 // START(35)
-START(500)
+//START(500)
  START(305)
 DONE
 
@@ -102,7 +102,7 @@ EX_TURNTABLE_CUSTOM(TTRoute12, Turntable1, 601, -5, Turn, "TT1 -5") */
 
 // Pre-defined aliases to ensure unique IDs are used.
 // Turntable reserve ID, valid is 0 - 255
-ALIAS(Turntable)
+ALIAS(Turntable,255)
 //ALIAS(Turntable1)
 // Turntable ROUTE ID reservations, using <? TTRouteX> for uniqueness:
 ALIAS(TTRoute1)
@@ -145,9 +145,8 @@ ALIAS(PRIMARY_RED_LIGHT, 250)
 ALIAS(PRIMARY_GREEN_LIGHT, 252)
 ALIAS(PRIMARY_AMBER_LIGHT, 251)
 ALIAS(SECONDARY_RED_LIGHT, 253)
-ALIAS(SECONDARY_GREEN_LIGHT, 255)
+ALIAS(SECONDARY_GREEN_LIGHT, 256) // 255 is reserved as no pin in motorcongfig
 ALIAS(SECONDARY_AMBER_LIGHT, 254)
-
 ROUTE(300,"STOP_PRIMARY_RED_LIGHT")
 RESET(PRIMARY_GREEN_LIGHT)
 SET(PRIMARY_AMBER_LIGHT)
@@ -198,7 +197,7 @@ DONE
 
 
 
-AUTOMATION(500, "Districts A MAIN _ B PROG Default")
+/* AUTOMATION(500, "Districts A MAIN _ B PROG Default")
  SET_TRACK(A,MAIN) PRINT("Default Districts Tracks MAIN A & PROG B")
  SET_TRACK(B,PROG)
  DONE
@@ -210,7 +209,7 @@ AUTOMATION(502, "District A PROG")   // Alternate DCC PROG track A
  DONE
 AUTOMATION(503, "District A DC (Loco Id=1)")     // Alternate DC track A with loco ID 1
  SETLOCO(1)
- SET_TRACK(A,DC) PRINT("District A DC (Loco Id=1)")
+ SET_TRACK(A, DC) PRINT("District A DC (Loco Id=1)")
  DONE
 AUTOMATION(504, "District A DCX (Loco Id=1)")    // Alternate DCX track A Changed to Opposite Polarity
  SETLOCO(1)
@@ -219,7 +218,6 @@ AUTOMATION(504, "District A DCX (Loco Id=1)")    // Alternate DCX track A Change
 AUTOMATION(505, "District A NONE")    // A Track disabled
  SET_TRACK(A, NONE) PRINT ("District A disabled")
  DONE
-
  AUTOMATION(506, "District B MAIN")   // Alternate DCC Main track B
  SET_TRACK(B, MAIN) PRINT("District B MAIN")
  DONE
@@ -228,24 +226,22 @@ AUTOMATION(507, "District B PROG")   // Alternate DCC PROG track B
  DONE
 AUTOMATION(508, "District B DC (LocoId=2)")     // Alternate DC track B with loco ID 2
  SETLOCO(2)
- SET_TRACK(A,DC) PRINT("District B DC (Loco Id=2)")
+ SET_TRACK(A, DC) PRINT("District B DC (Loco Id=2)")
  DONE
-
 AUTOMATION(509, "District B DCX (Loco Id=2)")    // Alternate DCX track B Changed to Opposite Polarity
  SETLOCO(2)
- SET_TRACK(B,DCX) PRINT("District B DCX Opposite Polarity") // Track B Opposite Polarity DC
+ SET_TRACK(B, DCX) PRINT("District B DCX Opposite Polarity") // Track B Opposite Polarity DC
  DONE
-
  AUTOMATION(510, "District B NONE")    // B Track disabled
  SET_TRACK(B, NONE) PRINT ("District B disabled")
- DONE
+ DONE */
 
-
+/* 
 ALIAS(BUTTON1,52)
 ALIAS(BUTTON2,53)
 
 ALIAS (SENSOR_1,54)
-SIGNAL(22,26,27)
+SIGNAL(22,26,27) */
 
 //add sensor to expansion module 0x23 at pin 200
 //ALIAS(MAIN_SENSOR,206)

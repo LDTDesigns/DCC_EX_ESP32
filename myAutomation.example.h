@@ -35,7 +35,7 @@ DONE     // This just ends the startup thread, leaving 2 others running.
  *  S20                    S21                   
  *  === START->================
  */
-   SEQUENCE(1) 
+  /*  SEQUENCE(1) 
      DELAY(10000)   // wait 10 seconds
      FON(3)       // Set Loco Function 3, Horn on
      DELAY(1000)    // wait 1 second
@@ -49,7 +49,7 @@ DONE     // This just ends the startup thread, leaving 2 others running.
      AT(20)       // until we get to S20
      STOP         // then stop
      FOFF(2)      // Bell off 
-     FOLLOW(1)    // and follow sequence 1 again
+     FOLLOW(1)    // and follow sequence 1 again */
    
 /* SEQUENCE(2) is an automation example for a single loco Y shaped journey
  *  S31,S32,S33 are sensors, T4 is a turnout
@@ -62,7 +62,7 @@ DONE     // This just ends the startup thread, leaving 2 others running.
  *  
  *  Train runs from START to S31, back to S32, again to S31, Back to start.
  */
-  SEQUENCE(2)
+ /*  SEQUENCE(2)
    FWD(60)     // go forward at DCC speed 60 
    AT(31) STOP  // when we get to sensor 31 
    DELAY(10000)  // wait 10 seconds 
@@ -77,4 +77,4 @@ DONE     // This just ends the startup thread, leaving 2 others running.
    REV(50)     // reverse back to S3
    AT(33) STOP
    DELAY(20000)  // wait 20 seconds 
-   FOLLOW(2)   // follow sequence 2... ie repeat the process
+   FOLLOW(2)   // follow sequence 2... ie repeat the process */

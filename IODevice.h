@@ -435,9 +435,12 @@ private:
   void _broadcastStatus (VPIN vpin, uint8_t status, uint8_t activity);
   void _writeAnalogue(VPIN vpin, int value, uint8_t activity, uint16_t duration) override;
   void _display() override;
-  uint8_t _stepperStatus;
+  
   uint8_t _previousStatus;
   uint8_t _currentActivity;
+
+  protected:
+  uint8_t _stepperStatus;
 };
 #endif
 
