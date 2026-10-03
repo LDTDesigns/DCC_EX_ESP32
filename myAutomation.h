@@ -58,7 +58,7 @@ DONE
     MOVETT(vpin,steps,LED_Off) \
     DONE */
 
- #define EX_TURNTABLE_CUSTOM(route_id, reserve_id, vpin, steps, activity, desc) \
+ #define EX_TURNTABLE(route_id, reserve_id, vpin, steps, activity, desc) \
   ROUTE(route_id, desc) \
     RESERVE(reserve_id) \
     MOVETT(vpin,steps,LED_Fast) \
@@ -80,19 +80,21 @@ DONE
 // activity = The activity performed for this ROUTE (Note do not enclose in quotes "")
 // desc = Description that will appear in throttles (Must use quotes "")
 //
-EX_TURNTABLE_CUSTOM(TTRoute1, Turntable, 600, 114, Turn, "TT Pos 1")
-EX_TURNTABLE_CUSTOM(TTRoute2, Turntable, 600, 227, Turn, "TT Pos 2")
-EX_TURNTABLE_CUSTOM(TTRoute3, Turntable, 600, 341, Turn, "TT Pos 3")
-EX_TURNTABLE_CUSTOM(TTRoute4, Turntable, 600, 2159, Turn, "TT Pos 4")
-EX_TURNTABLE_CUSTOM(TTRoute5, Turntable, 600, 2273, Turn, "TT Pos 5")
-EX_TURNTABLE_CUSTOM(TTRoute6, Turntable, 600, 2386, Turn, "TT Pos 6")
-EX_TURNTABLE_CUSTOM(TTRoute7, Turntable, 600, 0, Home, "Home Turntable")
-EX_TURNTABLE_CUSTOM(TTRoute8, Turntable, 600, 5, Turn_Relative, "TT +5")
-EX_TURNTABLE_CUSTOM(TTRoute9, Turntable, 600, -5, Turn_Relative, "TT -5")
-EX_TURNTABLE_CUSTOM(TTRoute13, Turntable, 600, 114, Acc_On, "acc on")
-EX_TURNTABLE_CUSTOM(TTRoute14, Turntable, 600, 114, Acc_Off, "acc off")
-EX_TURNTABLE_CUSTOM(TTRoute15, Turntable, 600, 114, LED_On, "LED on")
-EX_TURNTABLE_CUSTOM(TTRoute16, Turntable, 600, 114, LED_Off, "LED off")
+EX_TURNTABLE(TTRoute1, Turntable, 600, 2740, Turn, "TT Pos 1")
+EX_TURNTABLE(TTRoute2, Turntable, 600, 3120, Turn, "TT Pos 2")
+EX_TURNTABLE(TTRoute3, Turntable, 600, 3470, Turn, "TT Pos 3")
+EX_TURNTABLE(TTRoute4, Turntable, 600, 3872, Turn, "TT Pos 4")
+EX_TURNTABLE(TTRoute5, Turntable, 600, 6950, Turn, "TT Pos 5")
+EX_TURNTABLE(TTRoute6, Turntable, 600, 7200, Turn, "TT Pos 6")
+EX_TURNTABLE(TTRoute8, Turntable, 600, 7600, Turn, "TT Pos 7")
+EX_TURNTABLE(TTRoute9, Turntable, 600, 7940, Turn, "TT Pos 8")
+EX_TURNTABLE(TTRoute10, Turntable, 600, 8335, Turn, "TT Pos 9")
+EX_TURNTABLE(TTRoute11, Turntable, 600, 2485, Turn, "TT Pos 10")
+EX_TURNTABLE(TTRoute7, Turntable, 600, 0, Home, "Home Turntable")
+EX_TURNTABLE(TTRoute13, Turntable, 600, 114, Acc_On, "acc on")
+EX_TURNTABLE(TTRoute14, Turntable, 600, 114, Acc_Off, "acc off")
+EX_TURNTABLE(TTRoute15, Turntable, 600, 114, LED_On, "LED on")
+EX_TURNTABLE(TTRoute16, Turntable, 600, 114, LED_Off, "LED off")
 /* 
 EX_TURNTABLE_CUSTOM(TTRoute10, Turntable1, 601, 0, Home, "Home TT 1")
 EX_TURNTABLE_CUSTOM(TTRoute11, Turntable1, 601, 5, Turn, "TT1 +5")

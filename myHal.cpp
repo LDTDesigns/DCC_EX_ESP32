@@ -53,7 +53,7 @@ void halSetup() {
   PCF8574::create(240, 8, 0x39);
 
  //LocalCoilDriver::create(0x38,200,8,3000,75);
-EXTurntable_Custom::create(600,1,0x60);
+EXTurntable::create(600,1,0x60);
  
 // ========================================================================
     // SECTION 1: NETWORK HARDWARE BUS INITIALIZATION
