@@ -38,6 +38,40 @@ MOVETT(600, 114, Turn)
  START(305)
 DONE
 
+
+AUTOSTART
+PRINT("Auto Booster Mode")
+SET_TRACK(A, MAIN)
+SET_TRACK(B, MAIN)
+SET_POWER(A, OFF)
+SET_POWER(B, OFF)
+LCD(4, "BOOSTER OFF")
+PRINT("Waiting for RAILSYNC")
+DONE
+
+//   BOOSTER_INPUT pin requires define in config.h
+ONRAILSYNCON
+RESERVE(111)
+SET_TRACK(A, BOOST)
+SET_POWER(A, ON)
+PRINT("RAILSYNC ON TRACK A BOOST")
+SET_TRACK(B, BOOST)
+SET_POWER(B, ON)
+FREE(111)
+PRINT("RAILSYNC ON TRACK B BOOST")
+LCD(4, "BOOSTER A B ON")
+DONE
+
+ONRAILSYNCOFF
+RESERVE(111)
+SET_TRACK(A, MAIN)
+SET_TRACK(B, MAIN)
+SET_POWER(A, OFF)
+SET_POWER(B, OFF)
+FREE(111)
+LCD(4, "BOOSTER OFF")
+PRINT("RAILSYNC OFF")
+DONE
 // For Conductor level users who wish to just use EX-Turntable, you don't need to understand this
 // and can move to defining the turntable positions below. You must, however, ensure this remains
 // before any position definitions or you will get compile errors when uploading.
